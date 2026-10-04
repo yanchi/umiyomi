@@ -111,7 +111,7 @@ description: "Task list for 001-marine-forecast-view"
 - [X] T043 [US1] `backend/src/Presentation/Web/Controller/ForecastController.php`（`GET /forecast`、route `app_forecast`）：`lat` / `lon` を Parser に渡す → `ViewMarineForecastInput(latitude, longitude, $request->getClientIp() ?? 'unknown')` で UseCase を呼ぶ → Factory で ViewModel に変換 → `forecast/index.html.twig` を描画する。Domain のロジックを書かない（入力エラー時の 422 と状態ごとのステータスは US2 の T058 で入れる。T038, T041 に依存）
 - [X] T044 [US1] `backend/templates/forecast/index.html.twig` と `backend/templates/forecast/_table.html.twig`：contracts「画面の構成」の順（フォーム → 地点 → 最終更新 → 注意書き → 一覧）。表は `<div class="forecast-table-wrapper">` で囲み、`<thead>` に日付の行と時刻の行、各行の項目名は `<th scope="row">`、日付が変わる列・3 時間ごとの最初の列にクラスを付け、3 時間ごとの最初の列に「3時間ごと」を表示する。Twig では計算・分岐を増やさず ViewModel の文字列を出すだけにする
 - [X] T045 [US1] `backend/assets/styles/app.css`：表のラッパーに `overflow-x: auto`、項目名の列に `position: sticky; left: 0;` と背景色、日付が変わる列の左に太い境界線、3 時間ごとの最初の列の左に別の境界線、数値に `font-variant-numeric: tabular-nums`、幅 360px でページ全体が横にはみ出さないレイアウト（research R8、FR-016）
-- [ ] T046 [US1] `docker compose exec php composer check` を通し、ブラウザ（DevTools で 360px）で quickstart の手順 1〜4 を確認する
+- [X] T046 [US1] `docker compose exec php composer check` を通し、ブラウザ（DevTools で 360px）で quickstart の手順 1〜4 を確認する
 
 **Checkpoint**: US1 だけで、有効な地点の予報表示・1 時間の再利用・スマホ幅の表示が動く
 
@@ -175,7 +175,7 @@ description: "Task list for 001-marine-forecast-view"
 - [X] T064 [P] `backend/tests/Functional/ForecastPageTest.php` に、トップ・Fresh・Stale・Unavailable・RateLimited・入力エラーのすべての画面で「安全です」「出航できます」「問題ありません」を含まないこと、予報ページのすべての状態で安全の注意書きがあること、表がある状態では必ず `最終更新：YYYY/MM/DD HH:mm` の形式があることを data provider で確認するテストを追加する（SC-005、FR-007、FR-009、FR-010）
 - [X] T065 [P] ファイルが置かれたディレクトリの `.gitkeep` を削除する（`backend/src/Domain/Marine/.gitkeep`、`backend/src/Application/Marine/.gitkeep`、`backend/src/Infrastructure/Marine/.gitkeep`、`backend/src/Presentation/Web/Controller/.gitkeep`、`backend/tests/Unit/.gitkeep`、`backend/tests/External/.gitkeep`）
 - [X] T066 `docker compose exec php composer check` と `docker compose exec php composer test:external` を実行し、すべて通ることを確認する
-- [ ] T067 `specs/001-marine-forecast-view/quickstart.md` の「3. ブラウザでの確認」の 9 項目を、PC 幅と 360px 幅の両方で確認する
+- [X] T067 `specs/001-marine-forecast-view/quickstart.md` の「3. ブラウザでの確認」の 9 項目を、PC 幅と 360px 幅の両方で確認する
 
 ---
 
@@ -270,4 +270,4 @@ Task: "T042 HomeController と _form.html.twig"
 - **PHPStan（`phpstan.dist.neon`）**：Fake Provider・固定時計は `when@test` でだけ登録され、PHPStan は dev のコンテナを参照するため、`tests/Functional/*` に限り `symfonyContainer.serviceNotFound` を無視する設定を追加した
 - **`services.yaml` の `when@test`（T063）**：External テストから取り出せるよう、本物の `OpenMeteoMarineForecastProvider` を public にした
 - **ログ（T055）**：両方の API が失敗した場合も、UseCase は前回の予報で代替するだけで原因を残せない（Application は Deptrac でロガーを参照できない）ため、Provider が `FetchFailure` を投げる前に warning を記録する
-- **ブラウザでの目視確認（T046・T067）**：画面の内容（ステータス・文言・行と列）は dev サーバーに実 API で問い合わせて確認したが、360px 幅での見た目は人間の確認待ち
+- **ブラウザでの目視確認（T046・T067）**：画面の内容（ステータス・文言・行と列）は dev サーバーに実 API で問い合わせて確認したが、360px 幅と PC 幅での見た目は人間が確認済み

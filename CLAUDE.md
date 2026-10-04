@@ -2,7 +2,7 @@
 
 UMIYOMI（ウミヨミ）：指定した緯度・経度の風・波・うねり予報を出航前に確認するサービス。MVPはWebサービス（Symfony + Twig）で始め、MVP完成後にモバイルアプリ（Flutter）へ展開する。
 
-詳細仕様は [docs/SPEC.md](docs/SPEC.md)。設計判断で迷ったら必ず参照すること（§0 のMVP方針が他の節より優先）。
+詳細仕様は [docs/SPEC.md](docs/SPEC.md)。設計判断で迷ったら必ず参照すること（§0 のMVP方針が他の節より優先）。海況APIの選定・フェーズ方針は [docs/MARINE_API_STRATEGY.md](docs/MARINE_API_STRATEGY.md)。
 
 ## 人格
 
@@ -102,3 +102,10 @@ UMIYOMIは航海の安全を保証しない。UI文言・コード中の文字�
 Domain設計 / Repository境界 / 画面・URL設計（将来はAPI Contract） / DB Schema / 外部API Provider / 課金 / Security / 海況判断ロジック
 
 **上記以外の低リスク変更**は、実装 → 静的解析（PHPStan）→ テスト → 成功したら次へ、と自律的に進めてよい。
+
+## Active Technologies
+- PHP 8.4（FrankenPHP、Docker） + Symfony 8.1（FrameworkBundle、TwigBundle、HttpClient、Cache、AssetMapper）。追加：`symfony/clock`、`symfony/rate-limiter` (001-marine-forecast-view)
+- なし（DB は導入しない）。予報と回数制限のカウンターは Symfony Cache（dev/prod はファイルシステム、test は in-memory。複数台構成時は Redis） (001-marine-forecast-view)
+
+## Recent Changes
+- 001-marine-forecast-view: Added PHP 8.4（FrankenPHP、Docker） + Symfony 8.1（FrameworkBundle、TwigBundle、HttpClient、Cache、AssetMapper）。追加：`symfony/clock`、`symfony/rate-limiter`

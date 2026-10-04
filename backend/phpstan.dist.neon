@@ -13,3 +13,7 @@ parameters:
         -
             identifier: method.unused
             path: src/Kernel.php
+        # Fake Provider・固定時計は when@test でだけ登録する。PHPStan は dev のコンテナを参照するため未登録に見える
+        -
+            identifier: symfonyContainer.serviceNotFound
+            path: tests/Functional/*

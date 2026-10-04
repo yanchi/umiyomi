@@ -14,6 +14,12 @@ framework:
         # APCu (not recommended with heavy random-write workloads as memory fragmentation can cause perf issues)
         #app: cache.adapter.apcu
 
-        # Namespaced pools use the above "app" backend by default
-        #pools:
-            #my.dedicated.cache: null
+        pools:
+            # 再利用（1 時間）と取得失敗時の代替表示（24 時間）を 1 件で表すため、保持期間は長いほうに合わせる。
+            # 1 時間以内かどうかは保存した取得日時からアプリケーション側で判定する
+            cache.marine_forecast:
+                default_lifetime: 86400
+
+# test 環境も既定のファイルシステム（var/cache/test）のままにする。ArrayAdapter は kernel.reset でリクエストごとに
+# 空になり、Functional Test で「同じ地点を 2 回開いても取得は 1 回」を確かめられないため。
+# テスト間で混ざらないよう、Functional Test の setUp でプールを clear する

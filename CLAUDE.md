@@ -34,7 +34,21 @@ Browser --HTTPS--> Symfony (Twig) --> Open-Meteo Weather / Marine API
 
 ## コマンド
 
-<!-- プロジェクト作成後に追記する（PHPStan / PHP-CS-Fixer / PHPUnit など） -->
+開発環境は Docker（FrankenPHP + PHP 8.4、Symfony 8.1）。Symfony 本体は `backend/` にある。コマンドはリポジトリ直下で実行する。
+
+```sh
+docker compose up -d                              # 起動 → http://localhost:8000
+docker compose exec php composer check            # 整形チェック + PHPStan + テスト（作業完了前に必ず通す）
+docker compose exec php composer cs:fix           # PHP-CS-Fixer で自動整形
+docker compose exec php composer stan             # PHPStan（level max）
+docker compose exec php composer test             # PHPUnit（unit + functional。外部APIは呼ばない）
+docker compose exec php composer test:external    # 実際の外部APIを呼ぶテスト（明示的に実行するときだけ）
+docker compose exec php vendor/bin/phpunit --filter <テスト名>   # 単体のテストを実行
+docker compose exec php bin/console <command>     # Symfony コンソール
+docker compose exec php composer require <pkg>    # パッケージ追加（Flex レシピに設定を任せる）
+```
+
+テストの置き場所：`backend/tests/Unit`、`backend/tests/Functional`、`backend/tests/External`（実API）。
 
 ## Backend（Symfony）設計ルール
 
@@ -76,6 +90,8 @@ UMIYOMIは航海の安全を保証しない。UI文言・コード中の文字�
 ## 作業の進め方
 
 基本フロー：Spec → Plan → Implementation → Static Analysis → Test → Human Review
+
+機能単位の開発は Spec Kit で進める：`/speckit.specify` → （`/speckit.clarify`）→ `/speckit.plan` → `/speckit.tasks` → （`/speckit.analyze`）→ `/speckit.implement`。プロジェクト原則は [.specify/memory/constitution.md](.specify/memory/constitution.md)、機能ごとの spec/plan/tasks は `specs/` 配下。
 
 **実装前にPlanを提示し、人間のレビューを待つ変更：**
 Domain設計 / Repository境界 / 画面・URL設計（将来はAPI Contract） / DB Schema / 外部API Provider / 課金 / Security / 海況判断ロジック

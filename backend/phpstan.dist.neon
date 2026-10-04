@@ -1,0 +1,15 @@
+parameters:
+    level: max
+    # bin/・config/・public/ は Symfony の雛形そのままのため、自分たちのコードだけを対象にする
+    paths:
+        - src/
+        - tests/
+    excludePaths:
+        - tests/bootstrap.php
+    symfony:
+        containerXmlPath: var/cache/dev/App_KernelDevDebugContainer.xml
+    ignoreErrors:
+        # MicroKernelTrait から動的に呼ばれるため、PHPStan には未使用に見える
+        -
+            identifier: method.unused
+            path: src/Kernel.php

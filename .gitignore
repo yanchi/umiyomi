@@ -1,0 +1,3 @@
+# 個人の Claude Code 設定（.claude/commands/ などチーム共有分はコミットする）
+.claude/settings.local.json
+.DS_Store

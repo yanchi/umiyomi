@@ -66,8 +66,11 @@ RUN mkdir -p var/share && chown -R "$APP_USER:$APP_USER" var
 
 USER $APP_USER
 
-# DB を持たないので起動時の処理（マイグレーションなど）は無い。キャッシュとアセットはビルド時に作り切る
-RUN php bin/console asset-map:compile \
+# DB を持たないので起動時の処理（マイグレーションなど）は無い。キャッシュとアセットはビルド時に作り切る。
+# importmap:install は composer の auto-scripts で走るが、ここでは --no-scripts にしている。
+# assets/vendor/ は gitignore しているので、明示的に入れないと importmap:require したパッケージが本番でだけ 404 になる
+RUN php bin/console importmap:install \
+    && php bin/console asset-map:compile \
     && php bin/console cache:warmup
 
 EXPOSE 8080

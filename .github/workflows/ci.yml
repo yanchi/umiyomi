@@ -178,39 +178,53 @@ jobs:
     env:
       # compose.prod.yml・deploy/.env.production.example と揃える
       DEPLOY_DIR: /opt/umiyomi
+      # シークレットは env 経由で渡す。式でスクリプト本文に直接埋め込むと、
+      # 値の中身がシェルの構文として解釈されうるため
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
 
     steps:
       - uses: actions/checkout@v7
 
       - name: SSH 鍵を用意
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_deploy
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
 
           # ホスト鍵はシークレットに固定した値を使う。
           # ssh-keyscan でその場で取ると、相手が本物か確かめずに受け入れることになる
-          echo "${{ secrets.DEPLOY_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 644 ~/.ssh/known_hosts
 
       - name: compose ファイルを転送
         run: |
           scp -i ~/.ssh/id_deploy compose.prod.yml \
-            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:$DEPLOY_DIR/compose.prod.yml"
+            "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_DIR/compose.prod.yml"
 
       - name: イメージを入れ替えて起動
         run: |
           # GHCR は private なので VPS 側にも認証が要る。PAT を VPS に置かずに済むよう、
-          # この実行限りの GITHUB_TOKEN を使い、使い終わったら logout する。
+          # この実行限りの GITHUB_TOKEN を使う。
           #
           # トークンとイメージ名はスクリプト本文に埋め込んで標準入力から渡す。
           # ssh のコマンドライン引数に置くと、VPS 側の ps に一瞬見えてしまうため。
           # Actions の式は bash より先に展開されるので、クォート付きヒアドキュメントでも値は埋め込まれる。
           # （このコメントに式の記法を書くと Actions が式として解析しようとしてワークフローが起動しなくなる）
           ssh -i ~/.ssh/id_deploy \
-            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" bash -s <<'REMOTE'
+            "$DEPLOY_USER@$DEPLOY_HOST" bash -s <<'REMOTE'
           set -euo pipefail
           cd '${{ env.DEPLOY_DIR }}'
+
+          # VPS のユーザーは同居する他サービスと共有なので、~/.docker/config.json に
+          # login/logout すると他サービスの ghcr.io 認証を消したり、同時に走ったデプロイと
+          # トークンを上書きし合ったりする。このデプロイ専用の設定ディレクトリを使い、
+          # 終了時（失敗時も含む）に消す
+          DOCKER_CONFIG="$(mktemp -d)"; export DOCKER_CONFIG
+          trap 'rm -rf "$DOCKER_CONFIG"' EXIT
 
           printf '%s' '${{ secrets.GITHUB_TOKEN }}' \
             | docker login ghcr.io -u '${{ github.actor }}' --password-stdin
@@ -220,8 +234,6 @@ jobs:
           export APP_IMAGE='${{ needs.build-image.outputs.image }}:${{ github.sha }}'
           docker compose -f compose.prod.yml --env-file .env.production pull app
           docker compose -f compose.prod.yml --env-file .env.production up -d --remove-orphans
-
-          docker logout ghcr.io
 
           # 古いイメージの掃除は、このリポジトリのイメージだけを対象にする。
           # docker image prune はホスト全体を消すので、同居している他サービスの
@@ -234,7 +246,7 @@ jobs:
       - name: 起動を確認
         run: |
           ssh -i ~/.ssh/id_deploy \
-            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" bash -s <<'REMOTE'
+            "$DEPLOY_USER@$DEPLOY_HOST" bash -s <<'REMOTE'
           set -euo pipefail
           cd '${{ env.DEPLOY_DIR }}'
           for i in $(seq 1 24); do

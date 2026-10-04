@@ -38,9 +38,12 @@ Browser --HTTPS--> Symfony (Twig) --> Open-Meteo Weather / Marine API
 
 ```sh
 docker compose up -d                              # 起動 → http://localhost:8000
-docker compose exec php composer check            # 整形チェック + PHPStan + テスト（作業完了前に必ず通す）
-docker compose exec php composer cs:fix           # PHP-CS-Fixer で自動整形
-docker compose exec php composer stan             # PHPStan（level max）
+docker compose exec php composer check            # 下記すべて（作業完了前に必ず通す）
+docker compose exec php composer cs:fix           # PHP（PHP-CS-Fixer）と Twig（twig-cs-fixer）を自動整形
+docker compose exec php composer stan             # PHPStan（level max + strict-rules / phpunit / deprecation-rules）
+docker compose exec php composer deptrac          # レイヤー間の依存方向チェック（設定は backend/deptrac.yaml）
+docker compose exec php composer lint:symfony     # YAML / Twig / DI コンテナの lint
+docker compose exec php composer composer:lint    # composer.json の検証 + 脆弱性チェック（composer audit）
 docker compose exec php composer test             # PHPUnit（unit + functional。外部APIは呼ばない）
 docker compose exec php composer test:external    # 実際の外部APIを呼ぶテスト（明示的に実行するときだけ）
 docker compose exec php vendor/bin/phpunit --filter <テスト名>   # 単体のテストを実行
@@ -49,6 +52,8 @@ docker compose exec php composer require <pkg>    # パッケージ追加（Flex
 ```
 
 テストの置き場所：`backend/tests/Unit`、`backend/tests/Functional`、`backend/tests/External`（実API）。
+
+`backend/` 配下の PHP / Twig を Write・Edit すると、PostToolUse フック（[.claude/hooks/format-backend.sh](.claude/hooks/format-backend.sh)）が自動で整形する（コンテナ起動中のみ）。Deptrac の違反は設定を緩めて回避せず、依存の向きを直す。ルールの変更は人間のレビュー対象。
 
 ## Backend（Symfony）設計ルール
 

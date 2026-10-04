@@ -23,3 +23,7 @@
 /phpunit.xml
 /.phpunit.cache/
 ###< phpunit/phpunit ###
+
+# 静的解析・整形ツールのキャッシュ
+/.deptrac.cache
+/.twig-cs-fixer.cache

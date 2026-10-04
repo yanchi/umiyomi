@@ -2,11 +2,19 @@
 <form class="coordinate-form" method="get" action="{{ path('app_forecast') }}" novalidate>
     <div class="field">
         <label for="lat">緯度</label>
-        <input id="lat" name="lat" type="text" inputmode="decimal" autocomplete="off" placeholder="例：27.75" value="{{ form.latitude }}">
+        <input id="lat" name="lat" type="text" inputmode="decimal" autocomplete="off" placeholder="例：27.75" value="{{ form.latitude }}"
+            {%- if form.latitudeError %} aria-invalid="true" aria-describedby="lat-error"{% endif %}>
+        {% if form.latitudeError %}
+            <p id="lat-error" class="field-error">{{ form.latitudeError }}</p>
+        {% endif %}
     </div>
     <div class="field">
         <label for="lon">経度</label>
-        <input id="lon" name="lon" type="text" inputmode="decimal" autocomplete="off" placeholder="例：129.05" value="{{ form.longitude }}">
+        <input id="lon" name="lon" type="text" inputmode="decimal" autocomplete="off" placeholder="例：129.05" value="{{ form.longitude }}"
+            {%- if form.longitudeError %} aria-invalid="true" aria-describedby="lon-error"{% endif %}>
+        {% if form.longitudeError %}
+            <p id="lon-error" class="field-error">{{ form.longitudeError }}</p>
+        {% endif %}
     </div>
     <button type="submit">予報を表示</button>
     <p class="form-hint">十進数で入力してください。南緯・西経はマイナスの値です。</p>

@@ -14,6 +14,7 @@ use App\Domain\Marine\Availability;
 use App\Domain\Marine\Coordinate;
 use App\Domain\Marine\HourlyForecast;
 use App\Infrastructure\Marine\Cache\SymfonyMarineForecastCache;
+use App\Tests\Support\FakeFetchRateLimiter;
 use App\Tests\Support\FakeMarineForecastProvider;
 use App\Tests\Support\FixedClock;
 use App\Tests\Support\MarineForecastBuilder;
@@ -25,6 +26,7 @@ final class ViewMarineForecastTest extends TestCase
     private FixedClock $clock;
     private FakeMarineForecastProvider $provider;
     private SymfonyMarineForecastCache $cache;
+    private FakeFetchRateLimiter $rateLimiter;
     private ViewMarineForecast $useCase;
 
     protected function setUp(): void
@@ -32,7 +34,8 @@ final class ViewMarineForecastTest extends TestCase
         $this->clock = new FixedClock('2026-10-05T11:15:00Z');
         $this->provider = new FakeMarineForecastProvider($this->clock);
         $this->cache = new SymfonyMarineForecastCache(new ArrayAdapter());
-        $this->useCase = new ViewMarineForecast($this->provider, $this->cache, $this->clock);
+        $this->rateLimiter = new FakeFetchRateLimiter();
+        $this->useCase = new ViewMarineForecast($this->provider, $this->cache, $this->rateLimiter, $this->clock);
     }
 
     public function testFetchesUnknownLocationAndCachesIt(): void
@@ -131,6 +134,103 @@ final class ViewMarineForecastTest extends TestCase
         self::assertSame(GroupAvailability::Available, $forecast->wind);
         self::assertSame(GroupAvailability::NotProvidedAtLocation, $forecast->sea);
         self::assertNull($forecast->hours[0]->waveHeight);
+    }
+
+    public function testRateLimitedWhenNoReusableForecast(): void
+    {
+        $this->rateLimiter->exceed();
+
+        $result = $this->view();
+
+        self::assertSame(ForecastStatus::RateLimited, $result->status);
+        self::assertNull($result->forecast);
+        self::assertSame(0, $this->provider->callCount());
+    }
+
+    public function testReusableForecastIsReturnedEvenWhenRateLimited(): void
+    {
+        $this->view();
+        $this->rateLimiter->exceed();
+        $this->clock->advance('+30 minutes');
+
+        $result = $this->view();
+
+        self::assertSame(ForecastStatus::Fresh, $result->status);
+        self::assertSame(1, $this->provider->callCount());
+    }
+
+    public function testConsumesRateLimitOnlyForNewFetch(): void
+    {
+        $this->view(clientKey: '192.0.2.1');
+        $this->view(clientKey: '192.0.2.1');
+        $this->clock->advance('+60 minutes');
+        $this->view(clientKey: '192.0.2.1');
+
+        self::assertSame(['192.0.2.1', '192.0.2.1'], $this->rateLimiter->consumed());
+        self::assertSame(2, $this->provider->callCount());
+    }
+
+    public function testStaleWhenFetchFailsWithin24Hours(): void
+    {
+        $this->view();
+        $this->clock->advance('+3 hours');
+        $this->provider->willFail();
+
+        $result = $this->view();
+
+        self::assertSame(ForecastStatus::Stale, $result->status);
+        $forecast = $this->forecastOf($result);
+        self::assertSame('2026-10-05T20:15:00+09:00', $forecast->fetchedAt->format(\DATE_ATOM));
+        // 現在時刻（JST 23:15）を正時に切り捨てた時刻以降だけを表示する
+        self::assertSame('2026-10-05T23:00:00+09:00', $forecast->hours[0]->time->format(\DATE_ATOM));
+    }
+
+    public function testUnavailableWhenPreviousForecastIsOlderThan24Hours(): void
+    {
+        $this->view();
+        $this->clock->advance('+24 hours');
+        $this->provider->willFail();
+
+        $result = $this->view();
+
+        self::assertSame(ForecastStatus::Unavailable, $result->status);
+        self::assertNull($result->forecast);
+    }
+
+    public function testUnavailableWhenNoPreviousForecast(): void
+    {
+        $this->provider->willFail();
+
+        $result = $this->view();
+
+        self::assertSame(ForecastStatus::Unavailable, $result->status);
+        self::assertNull($result->forecast);
+    }
+
+    public function testPartialForecastIsShownButNotCached(): void
+    {
+        $this->provider->willReturnSeaAvailability(Availability::FetchFailed);
+
+        $result = $this->view();
+
+        self::assertSame(ForecastStatus::Fresh, $result->status);
+        self::assertSame(GroupAvailability::FetchFailed, $this->forecastOf($result)->sea);
+        self::assertNull($this->cache->find(new Coordinate(27.75, 129.05)));
+
+        $this->view();
+        self::assertSame(2, $this->provider->callCount());
+    }
+
+    public function testRateLimitedEvenWhenFallbackForecastExists(): void
+    {
+        $this->view();
+        $this->clock->advance('+3 hours');
+        $this->rateLimiter->exceed();
+
+        $result = $this->view();
+
+        self::assertSame(ForecastStatus::RateLimited, $result->status);
+        self::assertNull($result->forecast);
     }
 
     private function view(float $latitude = 27.75, float $longitude = 129.05, string $clientKey = '192.0.2.1'): MarineForecastResult

@@ -1,0 +1,11 @@
+framework:
+    rate_limiter:
+        # 提供元（Open-Meteo）を保護するため、接続元ごとに新規取得の回数を制限する（FR-019）。
+        # 上限はここだけで調整できる。sliding_window は fixed_window の窓の境目で最大 2 倍通ってしまう問題がない
+        provider_fetch:
+            policy: sliding_window
+            limit: 30
+            interval: '10 minutes'
+
+# test 環境も既定の cache.rate_limiter（ファイルシステム）を使い、状態をリクエスト間で残す。
+# テスト間で混ざらないよう、Functional Test の setUp でプールを clear する

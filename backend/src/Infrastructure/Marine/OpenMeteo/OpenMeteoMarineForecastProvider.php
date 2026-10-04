@@ -10,6 +10,7 @@ use App\Domain\Marine\Coordinate;
 use App\Domain\Marine\FetchFailure;
 use App\Domain\Marine\ForecastPeriod;
 use App\Domain\Marine\MarineForecast;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Target;
 use Symfony\Contracts\HttpClient\Exception\ExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
@@ -27,6 +28,7 @@ final readonly class OpenMeteoMarineForecastProvider implements MarineForecastPr
         private HttpClientInterface $marineClient,
         private OpenMeteoResponseMapper $mapper,
         private Clock $clock,
+        private LoggerInterface $logger,
     ) {
     }
 
@@ -42,11 +44,31 @@ final readonly class OpenMeteoMarineForecastProvider implements MarineForecastPr
             'query' => $this->query($coordinate, $period, self::MARINE_HOURLY),
         ]);
 
+        // 片方の API だけ失敗しても、取得できたグループは表示する（research R3）。失敗したグループは null として Mapper に渡す
+        $weatherError = null;
+        $marineError = null;
         try {
             $weather = OpenMeteoWeatherResponse::fromArray($this->decode($weatherResponse));
+        } catch (ExceptionInterface|\UnexpectedValueException $e) {
+            $weather = null;
+            $weatherError = $e;
+        }
+        try {
             $marine = OpenMeteoMarineResponse::fromArray($this->decode($marineResponse));
         } catch (ExceptionInterface|\UnexpectedValueException $e) {
-            throw new FetchFailure(\sprintf('Open-Meteo request failed: %s', $e->getMessage()), previous: $e);
+            $marine = null;
+            $marineError = $e;
+        }
+
+        // 原因は画面に出さず、調査用にログへ残す。両方失敗した場合も UseCase は前回の予報で代替するだけなので、ここで記録する
+        if (null !== $weatherError) {
+            $this->logger->warning('Open-Meteo weather request failed: {reason}', ['reason' => $weatherError->getMessage(), 'exception' => $weatherError]);
+        }
+        if (null !== $marineError) {
+            $this->logger->warning('Open-Meteo marine request failed: {reason}', ['reason' => $marineError->getMessage(), 'exception' => $marineError]);
+        }
+        if (null !== $weatherError && null !== $marineError) {
+            throw new FetchFailure(\sprintf('Open-Meteo weather and marine requests failed. weather: %s / marine: %s', $weatherError->getMessage(), $marineError->getMessage()), previous: $marineError);
         }
 
         return $this->mapper->toDomain($coordinate, $fetchedAt, $weather, $marine);

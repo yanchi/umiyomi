@@ -8,6 +8,11 @@
     </header>
     {{ include('forecast/_form.html.twig', {form: page.form}) }}
 
+    {# 古い予報や取得できなかったことを見落とさないよう、地点・一覧より前に置く #}
+    {% if page.notice %}
+        <p class="notice notice--{{ page.notice.type }}" role="alert">{{ page.notice.message }}</p>
+    {% endif %}
+
     {% if page.location %}
         <h2 class="location">{{ page.location }}</h2>
     {% endif %}
@@ -16,6 +21,14 @@
     {% endif %}
 
     <p class="disclaimer">この予報は航海の安全を保証するものではありません。出航前に気象庁などが発表する警報・注意報もあわせて確認してください。</p>
+
+    {% if page.groupMessages is not empty %}
+        <ul class="group-messages">
+            {% for message in page.groupMessages %}
+                <li>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
 
     {% if page.table %}
         {{ include('forecast/_table.html.twig', {table: page.table}) }}

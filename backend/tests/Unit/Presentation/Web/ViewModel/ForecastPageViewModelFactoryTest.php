@@ -131,6 +131,84 @@ final class ForecastPageViewModelFactoryTest extends TestCase
         self::assertSame($expected, $rows[7]['cells'][0]);
     }
 
+    public function testStaleForecastPage(): void
+    {
+        $viewModel = $this->factory->create($this->query, MarineForecastResult::stale($this->forecast(fetchedAt: '2026-10-05T17:15:00+09:00')));
+
+        self::assertSame(['type' => 'stale', 'message' => '最新の予報を取得できませんでした。表示中は 2026/10/05 17:15 時点の予報です'], $viewModel->notice);
+        self::assertSame('最終更新：2026/10/05 17:15', $viewModel->lastUpdated);
+        self::assertSame('北緯 27.75° / 東経 129.05°', $viewModel->location);
+        self::assertNotNull($viewModel->table);
+    }
+
+    public function testUnavailablePage(): void
+    {
+        $viewModel = $this->factory->create($this->query, MarineForecastResult::unavailable());
+
+        self::assertSame(['type' => 'unavailable', 'message' => '予報を取得できませんでした。時間をおいて再度お試しください'], $viewModel->notice);
+        self::assertNull($viewModel->location);
+        self::assertNull($viewModel->lastUpdated);
+        self::assertNull($viewModel->table);
+        self::assertSame('27.75', $viewModel->form['latitude']);
+    }
+
+    public function testRateLimitedPage(): void
+    {
+        $viewModel = $this->factory->create($this->query, MarineForecastResult::rateLimited());
+
+        self::assertSame(['type' => 'rate_limited', 'message' => 'しばらく待ってから再度お試しください'], $viewModel->notice);
+        self::assertNull($viewModel->location);
+        self::assertNull($viewModel->lastUpdated);
+        self::assertNull($viewModel->table);
+    }
+
+    /**
+     * @return iterable<string, array{GroupAvailability, GroupAvailability, list<string>, list<string>}>
+     */
+    public static function groupProvider(): iterable
+    {
+        $wind = \array_slice(self::ROW_LABELS, 0, 3);
+        $sea = \array_slice(self::ROW_LABELS, 3);
+
+        yield 'sea not provided' => [GroupAvailability::Available, GroupAvailability::NotProvidedAtLocation, ['この地点では波・うねりの予報が得られません'], $wind];
+        yield 'sea fetch failed' => [GroupAvailability::Available, GroupAvailability::FetchFailed, ['波・うねりの予報を取得できませんでした'], $wind];
+        yield 'wind fetch failed' => [GroupAvailability::FetchFailed, GroupAvailability::Available, ['風の予報を取得できませんでした'], $sea];
+        yield 'wind not provided' => [GroupAvailability::NotProvidedAtLocation, GroupAvailability::Available, ['この地点では風の予報が得られません'], $sea];
+    }
+
+    /**
+     * @param list<string> $expectedMessages
+     * @param list<string> $expectedRows
+     */
+    #[DataProvider('groupProvider')]
+    public function testUnavailableGroupsAreReplacedByMessages(GroupAvailability $wind, GroupAvailability $sea, array $expectedMessages, array $expectedRows): void
+    {
+        $viewModel = $this->factory->create($this->query, MarineForecastResult::fresh($this->forecast(wind: $wind, sea: $sea)));
+
+        self::assertSame($expectedMessages, $viewModel->groupMessages);
+        self::assertNotNull($viewModel->table);
+        self::assertSame($expectedRows, array_column($viewModel->table->rows, 'label'));
+    }
+
+    public function testInvalidInputPage(): void
+    {
+        $query = new CoordinateQueryParser()->parse('95', 'abc');
+
+        $viewModel = $this->factory->createForInvalidInput($query);
+
+        self::assertSame([
+            'latitude' => '95',
+            'longitude' => 'abc',
+            'latitudeError' => '緯度は -90〜90 の範囲で入力してください',
+            'longitudeError' => '経度を数値（-180〜180）で入力してください',
+        ], $viewModel->form);
+        self::assertNull($viewModel->notice);
+        self::assertNull($viewModel->location);
+        self::assertNull($viewModel->lastUpdated);
+        self::assertSame([], $viewModel->groupMessages);
+        self::assertNull($viewModel->table);
+    }
+
     private function table(?MarineForecastView $forecast = null): ForecastTable
     {
         $table = $this->factory->create($this->query, MarineForecastResult::fresh($forecast ?? $this->forecast()))->table;

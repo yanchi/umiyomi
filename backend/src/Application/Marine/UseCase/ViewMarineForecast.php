@@ -9,11 +9,13 @@ use App\Application\Marine\DTO\HourlyForecastView;
 use App\Application\Marine\DTO\MarineForecastResult;
 use App\Application\Marine\DTO\MarineForecastView;
 use App\Application\Marine\Port\Clock;
+use App\Application\Marine\Port\FetchRateLimiter;
 use App\Application\Marine\Port\MarineForecastCache;
 use App\Application\Marine\Port\MarineForecastProvider;
 use App\Domain\Marine\Availability;
 use App\Domain\Marine\CompassPoint;
 use App\Domain\Marine\Coordinate;
+use App\Domain\Marine\FetchFailure;
 use App\Domain\Marine\ForecastPeriod;
 use App\Domain\Marine\ForecastTimeline;
 use App\Domain\Marine\HourlyForecast;
@@ -29,6 +31,7 @@ final readonly class ViewMarineForecast
     public function __construct(
         private MarineForecastProvider $provider,
         private MarineForecastCache $cache,
+        private FetchRateLimiter $rateLimiter,
         private Clock $clock,
     ) {
     }
@@ -43,7 +46,22 @@ final readonly class ViewMarineForecast
             return MarineForecastResult::fresh($this->toView($cached, $now));
         }
 
-        $fetched = $this->provider->forecast($coordinate, ForecastPeriod::startingAt($now, self::FETCH_HOURS));
+        // 再利用できる予報があるときは回数に数えない（FR-019）ため、回数制限の判定は再利用の判定より後に置く
+        if (!$this->rateLimiter->tryConsume($input->clientKey)) {
+            // spec は上限超過時に一覧を出さないと定めているため、24 時間以内の前回予報があっても代替表示しない（research R5）
+            return MarineForecastResult::rateLimited();
+        }
+
+        try {
+            $fetched = $this->provider->forecast($coordinate, ForecastPeriod::startingAt($now, self::FETCH_HOURS));
+        } catch (FetchFailure) {
+            if (null !== $cached && $cached->isFallbackUsableAt($now)) {
+                return MarineForecastResult::stale($this->toView($cached, $now));
+            }
+
+            return MarineForecastResult::unavailable();
+        }
+
         if ($fetched->isComplete()) {
             $this->cache->save($fetched);
         }

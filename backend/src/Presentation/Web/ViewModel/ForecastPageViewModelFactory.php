@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Presentation\Web\ViewModel;
 
+use App\Application\Marine\DTO\ForecastStatus;
+use App\Application\Marine\DTO\GroupAvailability;
 use App\Application\Marine\DTO\HourlyForecastView;
 use App\Application\Marine\DTO\MarineForecastResult;
 use App\Application\Marine\DTO\MarineForecastView;
@@ -15,6 +17,7 @@ use App\Presentation\Web\Input\CoordinateQuery;
  * @phpstan-import-type Column from ForecastTable
  * @phpstan-import-type Row from ForecastTable
  * @phpstan-import-type Form from ForecastPageViewModel
+ * @phpstan-import-type Notice from ForecastPageViewModel
  */
 final readonly class ForecastPageViewModelFactory
 {
@@ -39,17 +42,55 @@ final readonly class ForecastPageViewModelFactory
     {
         $forecast = $result->forecast;
         if (null === $forecast) {
-            return new ForecastPageViewModel($this->form($query), null, null, null, [], null);
+            return new ForecastPageViewModel($this->form($query), $this->notice($result->status, null), null, null, [], null);
         }
+
+        $isStale = ForecastStatus::Stale === $result->status;
 
         return new ForecastPageViewModel(
             form: $this->form($query),
-            notice: null,
+            notice: $this->notice($result->status, $forecast),
             location: $this->location($forecast),
-            lastUpdated: $this->lastUpdated($forecast),
-            groupMessages: [],
+            lastUpdated: $this->lastUpdated($forecast, $isStale),
+            groupMessages: $this->groupMessages($forecast),
             table: $this->table($forecast),
         );
+    }
+
+    /**
+     * @return Notice|null
+     */
+    private function notice(ForecastStatus $status, ?MarineForecastView $forecast): ?array
+    {
+        return match ($status) {
+            ForecastStatus::Fresh => null,
+            ForecastStatus::Stale => [
+                'type' => 'stale',
+                'message' => \sprintf('最新の予報を取得できませんでした。表示中は %s 時点の予報です', $forecast?->fetchedAt->format('Y/m/d H:i') ?? ''),
+            ],
+            ForecastStatus::Unavailable => ['type' => 'unavailable', 'message' => '予報を取得できませんでした。時間をおいて再度お試しください'],
+            ForecastStatus::RateLimited => ['type' => 'rate_limited', 'message' => 'しばらく待ってから再度お試しください'],
+        };
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function groupMessages(MarineForecastView $forecast): array
+    {
+        return array_values(array_filter(
+            [self::groupMessage($forecast->wind, '風'), self::groupMessage($forecast->sea, '波・うねり')],
+            static fn (?string $message): bool => null !== $message,
+        ));
+    }
+
+    private static function groupMessage(GroupAvailability $availability, string $group): ?string
+    {
+        return match ($availability) {
+            GroupAvailability::Available => null,
+            GroupAvailability::NotProvidedAtLocation => \sprintf('この地点では%sの予報が得られません', $group),
+            GroupAvailability::FetchFailed => \sprintf('%sの予報を取得できませんでした', $group),
+        };
     }
 
     /**
@@ -76,9 +117,13 @@ final readonly class ForecastPageViewModelFactory
         );
     }
 
-    private function lastUpdated(MarineForecastView $forecast): string
+    private function lastUpdated(MarineForecastView $forecast, bool $isStale): string
     {
         $fetchedAt = $forecast->fetchedAt;
+        // 代替表示では再取得を試みて失敗した直後なので、再取得の時刻を案内しない
+        if ($isStale) {
+            return \sprintf('最終更新：%s', $fetchedAt->format('Y/m/d H:i'));
+        }
         $next = $forecast->nextRefetchAt;
         // 再取得の時刻は、最終更新と日付が違うときだけ日付を付ける
         $nextLabel = $next->format('Y-m-d') === $fetchedAt->format('Y-m-d') ? $next->format('H:i') : $next->format('m/d H:i');
@@ -88,7 +133,10 @@ final readonly class ForecastPageViewModelFactory
 
     private function table(MarineForecastView $forecast): ForecastTable
     {
-        return new ForecastTable($this->columns($forecast->hours), $this->rows($forecast->hours));
+        return new ForecastTable(
+            $this->columns($forecast->hours),
+            $this->rows($forecast->hours, GroupAvailability::Available === $forecast->wind, GroupAvailability::Available === $forecast->sea),
+        );
     }
 
     /**
@@ -130,12 +178,15 @@ final readonly class ForecastPageViewModelFactory
      *
      * @return list<Row>
      */
-    private function rows(array $hours): array
+    private function rows(array $hours, bool $showWind, bool $showSea): array
     {
-        $definitions = [
+        // 取得できなかったグループの行は「—」で埋めず行ごと出さない。欠損と区別し、代わりに groupMessages で理由を示すため
+        $windDefinitions = [
             ['風速 (m/s)', static fn (HourlyForecastView $h): string => self::number($h->windSpeed)],
             ['突風 (m/s)', static fn (HourlyForecastView $h): string => self::number($h->windGust)],
             ['風向', static fn (HourlyForecastView $h): string => self::direction($h->windDirection)],
+        ];
+        $seaDefinitions = [
             ['波高 (m)', static fn (HourlyForecastView $h): string => self::number($h->waveHeight)],
             ['波向', static fn (HourlyForecastView $h): string => self::direction($h->waveDirection)],
             ['波周期 (秒)', static fn (HourlyForecastView $h): string => self::number($h->wavePeriod)],
@@ -143,6 +194,8 @@ final readonly class ForecastPageViewModelFactory
             ['うねり向き', static fn (HourlyForecastView $h): string => self::direction($h->swellDirection)],
             ['うねり周期 (秒)', static fn (HourlyForecastView $h): string => self::number($h->swellPeriod)],
         ];
+
+        $definitions = [...($showWind ? $windDefinitions : []), ...($showSea ? $seaDefinitions : [])];
 
         $rows = [];
         foreach ($definitions as [$label, $format]) {

@@ -1,0 +1,9 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <header class="page-header">
+        <h1 class="site-title"><a href="{{ path('app_home') }}">UMIYOMI</a></h1>
+        <p class="lead">緯度・経度を入力すると、風・波・うねりの時間別予報を表示します。</p>
+    </header>
+    {{ include('forecast/_form.html.twig') }}
+{% endblock %}

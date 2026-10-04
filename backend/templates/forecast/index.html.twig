@@ -1,0 +1,23 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ page.location ?? '予報' }} | UMIYOMI{% endblock %}
+
+{% block body %}
+    <header class="page-header">
+        <h1 class="site-title"><a href="{{ path('app_home') }}">UMIYOMI</a></h1>
+    </header>
+    {{ include('forecast/_form.html.twig', {form: page.form}) }}
+
+    {% if page.location %}
+        <h2 class="location">{{ page.location }}</h2>
+    {% endif %}
+    {% if page.lastUpdated %}
+        <p class="last-updated">{{ page.lastUpdated }}</p>
+    {% endif %}
+
+    <p class="disclaimer">この予報は航海の安全を保証するものではありません。出航前に気象庁などが発表する警報・注意報もあわせて確認してください。</p>
+
+    {% if page.table %}
+        {{ include('forecast/_table.html.twig', {table: page.table}) }}
+    {% endif %}
+{% endblock %}

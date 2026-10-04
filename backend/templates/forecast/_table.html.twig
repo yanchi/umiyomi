@@ -1,0 +1,31 @@
+<div class="forecast-table-wrapper">
+    <table class="forecast-table">
+        <thead>
+            <tr class="date-row">
+                <th scope="col" class="item-header" rowspan="2">項目</th>
+                {% for column in table.columns %}
+                    <th scope="col" class="{{ column.startsNewDay ? 'starts-new-day' }} {{ column.startsThreeHourly ? 'starts-three-hourly' }}">
+                        {{- column.dateLabel -}}
+                        {% if column.startsThreeHourly %}<span class="interval-label">3時間ごと</span>{% endif %}
+                    </th>
+                {% endfor %}
+            </tr>
+            <tr class="time-row">
+                {% for column in table.columns %}
+                    <th scope="col" class="{{ column.startsNewDay ? 'starts-new-day' }} {{ column.startsThreeHourly ? 'starts-three-hourly' }}">{{ column.timeLabel }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in table.rows %}
+                <tr>
+                    <th scope="row">{{ row.label }}</th>
+                    {% for cell in row.cells %}
+                        {% set column = table.columns[loop.index0] %}
+                        <td class="{{ column.startsNewDay ? 'starts-new-day' }} {{ column.startsThreeHourly ? 'starts-three-hourly' }}">{{ cell }}</td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

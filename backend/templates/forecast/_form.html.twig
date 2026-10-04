@@ -1,0 +1,13 @@
+{# 全角数字やマイナス記号も受け付けるため type="number" ではなく text + inputmode="decimal" にする #}
+<form class="coordinate-form" method="get" action="{{ path('app_forecast') }}" novalidate>
+    <div class="field">
+        <label for="lat">緯度</label>
+        <input id="lat" name="lat" type="text" inputmode="decimal" autocomplete="off" placeholder="例：27.75" value="{{ form.latitude }}">
+    </div>
+    <div class="field">
+        <label for="lon">経度</label>
+        <input id="lon" name="lon" type="text" inputmode="decimal" autocomplete="off" placeholder="例：129.05" value="{{ form.longitude }}">
+    </div>
+    <button type="submit">予報を表示</button>
+    <p class="form-hint">十進数で入力してください。南緯・西経はマイナスの値です。</p>
+</form>

@@ -217,6 +217,8 @@ DomainはSymfony、Doctrine、Open-Meteoなどの技術詳細へ依存しない�
 
 # 6. 外部海況APIの抽象化
 
+Providerの選定・切り替えのフェーズ方針は [MARINE_API_STRATEGY.md](MARINE_API_STRATEGY.md) を参照する。
+
 Open-Meteoを直接Application層から利用しない。
 
 例えばDomain/Application側には以下のようなPortを定義する。

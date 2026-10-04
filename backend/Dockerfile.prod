@@ -1,0 +1,80 @@
+# 本番用イメージ。ビルドコンテキストは backend/。
+#
+# 開発用の Dockerfile とは別物。開発用はソースをバインドマウントするが、こちらはコードと依存を焼き込んだ
+# 自己完結イメージ（compose.prod.yml から起動する）。FrankenPHP を使うのは開発用と揃えるため。
+#
+# VPS ではホストの nginx が 80/443 と TLS を持つので、このコンテナは HTTP だけで待ち受け、
+# ホストの nginx からリバースプロキシされる。
+
+FROM dunglas/frankenphp:1-php8.4 AS base
+
+RUN install-php-extensions intl opcache apcu
+
+WORKDIR /app
+
+# ---------- 1. PHP の依存を解決 ----------
+FROM base AS vendor
+
+# zip は composer が dist を展開するためだけに使う。実行イメージには入れない
+RUN install-php-extensions zip
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
+COPY composer.json composer.lock symfony.lock ./
+# スクリプトは無効にする。この時点ではアプリ本体が無く bin/console を動かせないため
+RUN COMPOSER_ALLOW_SUPERUSER=1 composer install \
+        --no-dev \
+        --no-scripts \
+        --no-autoloader \
+        --prefer-dist \
+        --no-interaction \
+        --no-progress
+
+COPY . .
+RUN COMPOSER_ALLOW_SUPERUSER=1 composer dump-autoload --optimize --no-dev --classmap-authoritative
+
+# ---------- 2. 実行イメージ ----------
+FROM base AS runtime
+
+# opcache.validate_timestamps = 0 にできるのは、コードをイメージに焼き込んでいて実行中に変わらないから
+RUN cp "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini" \
+    && { \
+        echo 'expose_php = Off'; \
+        echo 'memory_limit = 256M'; \
+        echo 'opcache.enable = 1'; \
+        echo 'opcache.memory_consumption = 128'; \
+        echo 'opcache.max_accelerated_files = 20000'; \
+        echo 'opcache.validate_timestamps = 0'; \
+    } > "$PHP_INI_DIR/conf.d/99-app.ini"
+
+# root で動かさない。1024 未満のポートを使わないので、frankenphp の bind 用の capability も外す
+ARG APP_USER=app
+RUN useradd --no-create-home --shell /usr/sbin/nologin "$APP_USER" \
+    && setcap -r /usr/local/bin/frankenphp \
+    && chown -R "$APP_USER:$APP_USER" /config/caddy /data/caddy
+
+# SERVER_NAME をポートだけにすると Caddy は自動 HTTPS を行わない（TLS はホストの nginx が持つ）
+ENV APP_ENV=prod \
+    APP_DEBUG=0 \
+    SERVER_NAME=:8080
+
+COPY --from=vendor --chown=$APP_USER:$APP_USER /app /app
+
+# var/share は compose.prod.yml で名前付きボリュームにする。空のボリュームは初回マウント時に
+# イメージ側のディレクトリの所有者を引き継ぐので、ここで作っておく
+RUN mkdir -p var/share && chown -R "$APP_USER:$APP_USER" var
+
+USER $APP_USER
+
+# DB を持たないので起動時の処理（マイグレーションなど）は無い。キャッシュとアセットはビルド時に作り切る。
+# importmap:install は composer の auto-scripts で走るが、ここでは --no-scripts にしている。
+# assets/vendor/ は gitignore しているので、明示的に入れないと importmap:require したパッケージが本番でだけ 404 になる
+RUN php bin/console importmap:install \
+    && php bin/console asset-map:compile \
+    && php bin/console cache:warmup
+
+EXPOSE 8080
+
+# トップページは外部APIを呼ばないので、提供元の障害で unhealthy にならない
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD curl -fsS -o /dev/null http://127.0.0.1:8080/ || exit 1

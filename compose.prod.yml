@@ -1,0 +1,43 @@
+# さくら VPS 向けの本番構成。開発用の compose.yaml とは別物。
+#
+# 前提:
+#   - ホストの nginx が 80/443 と TLS を持ち、そこからリバースプロキシされる（deploy/nginx/umiyomi.conf）
+#   - 同じ VPS に他のサービス（ShipInfo など）が同居している
+# そのため app は 127.0.0.1 にだけ bind する。
+#
+# VPS 上のレイアウト（CI の deploy ジョブが転送する）:
+#   /opt/umiyomi/compose.prod.yml
+#   /opt/umiyomi/.env.production  ← 手で置く（deploy/.env.production.example）
+#
+# 使い方:
+#   docker compose -f compose.prod.yml --env-file .env.production up -d
+
+name: umiyomi
+
+x-logging: &logging
+  driver: json-file
+  options: { max-size: '10m', max-file: '3' }
+
+services:
+  app:
+    image: ${APP_IMAGE:-ghcr.io/yanchi/umiyomi/app:latest}
+    restart: unless-stopped
+    # ホストの nginx からだけ届くようにする。使用中のポートは deploy/README.md を参照
+    ports:
+      - '127.0.0.1:${APP_PORT:-8003}:8080'
+    environment:
+      APP_SECRET: ${APP_SECRET:?APP_SECRET を .env.production に設定してください}
+      DEFAULT_URI: ${DEFAULT_URI:?DEFAULT_URI を .env.production に設定してください}
+      # ホストの nginx からの接続は Docker のブリッジ（RFC1918 のアドレス）経由で届く。
+      # インターネット側の接続元はこの範囲にならないので、X-Forwarded-For を偽装しても
+      # ホストの nginx が右端に付けた本当の接続元が使われる。
+      # Symfony の PRIVATE_SUBNETS は使わない。6to4・Teredo など公開側から来うる範囲まで含むため
+      TRUSTED_PROXIES: 127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
+    volumes:
+      # 予報のキャッシュと取得回数制限のカウンター（var/share/pools）。
+      # ボリュームにしないと、デプロイのたびに消えて取得失敗時の代替表示ができなくなる
+      - share:/app/var/share
+    logging: *logging
+
+volumes:
+  share:

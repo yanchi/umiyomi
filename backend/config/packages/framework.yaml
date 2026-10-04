@@ -8,6 +8,12 @@ framework:
     #esi: true
     #fragments: true
 
+    # 本番はホストの nginx の裏で動く。信頼しないと接続元が全員プロキシの IP に見え、
+    # 接続元ごとの取得回数制限（provider_fetch）がサイト全体で 1 つの枠になってしまう。
+    # 値は compose.prod.yml で渡す。空なら信頼しない（開発・テスト）
+    trusted_proxies: '%env(TRUSTED_PROXIES)%'
+    trusted_headers: ['x-forwarded-for', 'x-forwarded-proto', 'x-forwarded-host', 'x-forwarded-port']
+
     http_client:
         scoped_clients:
             # 未取得の地点を 5 秒以内に表示する（SC-002）ため、2 つの API を並列に呼び、どちらも 4 秒で打ち切る

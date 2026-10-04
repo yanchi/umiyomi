@@ -1,3 +1,11 @@
 vendor/
 var/
 .env.local
+.env.*.local
+# 本番イメージ（Dockerfile.prod）に入れないもの。開発用はソースをバインドマウントするので影響しない
+tests/
+public/assets/
+.phpunit.cache/
+.php-cs-fixer.cache
+.twig-cs-fixer.cache
+.deptrac.cache

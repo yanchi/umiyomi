@@ -1,0 +1,263 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  # 積み重ねた PR（master 以外がベース）でも確かめられるよう、ベースブランチは絞らない
+  pull_request:
+  workflow_dispatch:
+
+# PR は新しい push で古い実行を止める。master は止めない
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: backend
+
+jobs:
+  # ローカルの composer check と同じ内容。失敗箇所が一目で分かるようにステップを分けている
+  php:
+    name: Lint / PHPStan / Deptrac / PHPUnit
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          # backend/Dockerfile（FrankenPHP 1-php8.4）と揃える
+          php-version: '8.4'
+          extensions: intl, zip, apcu
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      # audit は依存の公開状況で突然落ちるため、別ジョブ（audit）に分けている
+      - name: Validate composer.json
+        run: composer validate --strict --no-check-publish
+
+      - name: Check code style (PHP-CS-Fixer / twig-cs-fixer)
+        run: composer cs
+
+      - name: Lint YAML, Twig and DI container
+        run: composer lint:symfony
+
+      # composer stan が dev コンテナをウォームアップしてから解析する（phpstan.dist.neon が var/cache/dev を読むため）
+      - name: PHPStan
+        run: composer stan
+
+      - name: Deptrac
+        run: composer deptrac
+
+      # 外部APIは呼ばない（unit + functional のみ）。実APIは external-api.yml で確認する
+      - name: PHPUnit
+        run: composer test
+
+  # 依存パッケージの既知の脆弱性。新しい脆弱性は Dependabot（.github/dependabot.yml）でも知らせる
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - name: Audit Composer dependencies
+        run: composer audit --locked
+
+  # 開発用イメージがビルドできるか（ベースイメージや拡張の変更で壊れていないか）。本番用イメージは verify-prod でビルドする
+  docker-build:
+    name: Dev image build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build backend image
+        run: docker build --pull -t umiyomi-php:ci .
+
+  verify-prod:
+    name: 本番等価スモークテスト
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # compose.prod.yml を本番用イメージで実際に起動し、本番でしか通らない経路を通す
+      # （prod の設定、アセットのコンパイル、リバースプロキシの裏での接続元、再デプロイ後の var/share の保持）。
+      # 変更したファイルで実行するかどうかを分けないこと。framework.yaml の 1 行でも本番は壊れる
+      - name: 本番構成で起動して確かめる
+        run: bash scripts/verify-prod.sh
+
+  # ---------------------------------------------------------------------
+  # ここから下はデプロイ。master への push で上がすべて通ったときだけ動く。
+  # 手順・初回の設定・ロールバックは deploy/README.md
+  # ---------------------------------------------------------------------
+
+  build-image:
+    name: 本番イメージをビルドして GHCR に push
+    needs: [php, audit, docker-build, verify-prod]
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    defaults:
+      run:
+        working-directory: .
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: GHCR にログイン
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: イメージ名を決める
+        id: meta
+        run: |
+          # 小文字にしないと GHCR が受け付けない
+          REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "image=ghcr.io/${REPO}/app" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: ビルドして push
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          file: backend/Dockerfile.prod
+          push: true
+          # コミット SHA のタグも打つ。ロールバックはこのタグを指定するだけでよい
+          tags: |
+            ${{ steps.meta.outputs.image }}:latest
+            ${{ steps.meta.outputs.image }}:${{ github.sha }}
+          # パッケージをこのリポジトリに紐づける（デプロイ時の GITHUB_TOKEN で pull できるように）
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          cache-from: type=gha,scope=app
+          cache-to: type=gha,mode=max,scope=app
+
+  deploy:
+    name: さくら VPS にデプロイ
+    needs: build-image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # VPS が GHCR から private イメージを pull するときにこの GITHUB_TOKEN を使う
+      packages: read
+    # 同時デプロイを防ぐ
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    environment:
+      name: production
+      url: ${{ vars.DEPLOY_URL }}
+    defaults:
+      run:
+        working-directory: .
+    env:
+      # compose.prod.yml・deploy/.env.production.example と揃える
+      DEPLOY_DIR: /opt/umiyomi
+      # シークレットは env 経由で渡す。式でスクリプト本文に直接埋め込むと、
+      # 値の中身がシェルの構文として解釈されうるため
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: SSH 鍵を用意
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+
+          # ホスト鍵はシークレットに固定した値を使う。
+          # ssh-keyscan でその場で取ると、相手が本物か確かめずに受け入れることになる
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: compose ファイルを転送
+        run: |
+          scp -i ~/.ssh/id_deploy compose.prod.yml \
+            "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_DIR/compose.prod.yml"
+
+      - name: イメージを入れ替えて起動
+        run: |
+          # GHCR は private なので VPS 側にも認証が要る。PAT を VPS に置かずに済むよう、
+          # この実行限りの GITHUB_TOKEN を使う。
+          #
+          # トークンとイメージ名はスクリプト本文に埋め込んで標準入力から渡す。
+          # ssh のコマンドライン引数に置くと、VPS 側の ps に一瞬見えてしまうため。
+          # Actions の式は bash より先に展開されるので、クォート付きヒアドキュメントでも値は埋め込まれる。
+          # （このコメントに式の記法を書くと Actions が式として解析しようとしてワークフローが起動しなくなる）
+          ssh -i ~/.ssh/id_deploy \
+            "$DEPLOY_USER@$DEPLOY_HOST" bash -s <<'REMOTE'
+          set -euo pipefail
+          cd '${{ env.DEPLOY_DIR }}'
+
+          # VPS のユーザーは同居する他サービスと共有なので、~/.docker/config.json に
+          # login/logout すると他サービスの ghcr.io 認証を消したり、同時に走ったデプロイと
+          # トークンを上書きし合ったりする。このデプロイ専用の設定ディレクトリを使い、
+          # 終了時（失敗時も含む）に消す
+          DOCKER_CONFIG="$(mktemp -d)"; export DOCKER_CONFIG
+          trap 'rm -rf "$DOCKER_CONFIG"' EXIT
+
+          printf '%s' '${{ secrets.GITHUB_TOKEN }}' \
+            | docker login ghcr.io -u '${{ github.actor }}' --password-stdin
+
+          # latest ではなく SHA 指定で起動する。何が動いているかが確定し、
+          # ロールバックも過去の SHA を指定するだけで済む
+          export APP_IMAGE='${{ needs.build-image.outputs.image }}:${{ github.sha }}'
+          docker compose -f compose.prod.yml --env-file .env.production pull app
+          docker compose -f compose.prod.yml --env-file .env.production up -d --remove-orphans
+
+          # 古いイメージの掃除は、このリポジトリのイメージだけを対象にする。
+          # docker image prune はホスト全体を消すので、同居している他サービスの
+          # ロールバック用イメージまで巻き込む。直近 5 世代は残す（ロールバック用）
+          docker images "${APP_IMAGE%:*}" --format '{{.ID}} {{.CreatedAt}}' \
+            | sort -k2 -r | tail -n +6 | awk '{print $1}' | sort -u \
+            | while read -r id; do docker rmi "$id" 2>/dev/null || true; done
+          REMOTE
+
+      - name: 起動を確認
+        run: |
+          ssh -i ~/.ssh/id_deploy \
+            "$DEPLOY_USER@$DEPLOY_HOST" bash -s <<'REMOTE'
+          set -euo pipefail
+          cd '${{ env.DEPLOY_DIR }}'
+          for i in $(seq 1 24); do
+            app=$(docker inspect -f '{{.State.Health.Status}}' umiyomi-app-1 2>/dev/null || echo starting)
+            if [ "$app" = healthy ]; then
+              echo "app: healthy"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "起動を確認できなかった。直近のログ:" >&2
+          docker compose -f compose.prod.yml --env-file .env.production logs --tail=50 app >&2
+          exit 1
+          REMOTE

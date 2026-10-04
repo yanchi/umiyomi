@@ -32,11 +32,11 @@ description: "Task list for 001-marine-forecast-view"
 
 **Purpose**: 追加パッケージと、全ストーリーが使う設定
 
-- [ ] T001 `docker compose exec php composer require symfony/clock symfony/rate-limiter` を実行し、Flex レシピが生成した設定ファイルを確認する（`backend/composer.json`、`backend/symfony.lock`、レシピが作る `backend/config/packages/*.yaml`）
-- [ ] T002 [P] `backend/.env` に `OPEN_METEO_WEATHER_URL=https://api.open-meteo.com` と `OPEN_METEO_MARINE_URL=https://marine-api.open-meteo.com` を追加する（有料プランへの切り替えや取得失敗の手動再現を設定だけで行うため。plan「Structure Decision」）
-- [ ] T003 [P] `backend/assets/app.js` から雛形の `console.log` を削除する（`import './styles/app.css';` は残す）
-- [ ] T004 `backend/config/packages/framework.yaml` に `http_client.scoped_clients` として `open_meteo_weather.client`（`base_uri: '%env(OPEN_METEO_WEATHER_URL)%'`）と `open_meteo_marine.client`（`base_uri: '%env(OPEN_METEO_MARINE_URL)%'`）を追加し、どちらも `timeout: 4` と `max_duration: 4` を設定する（SC-002 の 5 秒以内のため、research R1）
-- [ ] T005 [P] `backend/config/packages/cache.yaml` に専用プール `cache.marine_forecast`（`default_lifetime: 86400`。24 時間 = FALLBACK_PERIOD）を追加し、`when@test` で `cache.marine_forecast` の adapter を `cache.adapter.array` にする（research R4）
+- [X] T001 `docker compose exec php composer require symfony/clock symfony/rate-limiter` を実行し、Flex レシピが生成した設定ファイルを確認する（`backend/composer.json`、`backend/symfony.lock`、レシピが作る `backend/config/packages/*.yaml`）
+- [X] T002 [P] `backend/.env` に `OPEN_METEO_WEATHER_URL=https://api.open-meteo.com` と `OPEN_METEO_MARINE_URL=https://marine-api.open-meteo.com` を追加する（有料プランへの切り替えや取得失敗の手動再現を設定だけで行うため。plan「Structure Decision」）
+- [X] T003 [P] `backend/assets/app.js` から雛形の `console.log` を削除する（`import './styles/app.css';` は残す）
+- [X] T004 `backend/config/packages/framework.yaml` に `http_client.scoped_clients` として `open_meteo_weather.client`（`base_uri: '%env(OPEN_METEO_WEATHER_URL)%'`）と `open_meteo_marine.client`（`base_uri: '%env(OPEN_METEO_MARINE_URL)%'`）を追加し、どちらも `timeout: 4` と `max_duration: 4` を設定する（SC-002 の 5 秒以内のため、research R1）
+- [X] T005 [P] `backend/config/packages/cache.yaml` に専用プール `cache.marine_forecast`（`default_lifetime: 86400`。24 時間 = FALLBACK_PERIOD）を追加し、`when@test` で `cache.marine_forecast` の adapter を `cache.adapter.array` にする（research R4）
 
 ---
 
@@ -50,28 +50,28 @@ description: "Task list for 001-marine-forecast-view"
 
 > 先に書き、失敗することを確認してから実装する
 
-- [ ] T006 [P] `backend/tests/Unit/Domain/Marine/CoordinateTest.php`：境界値（緯度 ±90、経度 ±180）を受け付ける / 範囲外（90.01、-180.01 など）で `InvalidArgumentException` / 小数点以下 2 桁への丸め（27.123456789 → 27.12、27.755 → 27.76 など）/ `equals()` / `key()` が `27.75_129.05`・`-0.50_-120.00` の形式になる
-- [ ] T007 [P] `backend/tests/Unit/Domain/Marine/CompassPointTest.php`：0° → N、11.24° → N、11.25° → NNE、22.5° → NNE、348.75° → N、348.74° → NNW、360° → N、-11.25° → N（時計回り側）、-22.5° → NNW、720° → N など、16 方位すべての中心値と境界値（data-model「CompassPoint」）
-- [ ] T008 [P] `backend/tests/Unit/Domain/Marine/ForecastPeriodTest.php`：`startingAt(now, 73)` が now を UTC の正時に切り捨てた時刻から 73 時間後までになる / `from >= to` や正時でない値で `InvalidArgumentException`
-- [ ] T009 [P] `backend/tests/Unit/Domain/Marine/MarineForecastTest.php`：`isReusableAt()`（fetchedAt + 1h の直前は true、ちょうどは false）/ `isFallbackUsableAt()`（+24h で同様）/ `nextRefetchAt()` = fetchedAt + 1h / `isComplete()`（どちらかが `FetchFailed` なら false、`NotProvidedAtLocation` は true）/ 不変条件違反（両グループ `FetchFailed`、`FetchFailed`・`NotProvidedAtLocation` のグループに値がある、時刻が昇順でない・重複）で `InvalidArgumentException`
-- [ ] T010 [P] `backend/tests/Unit/Domain/Marine/ForecastTimelineTest.php`：`displayTimeZone = Asia/Tokyo` で、now = JST 20:15 のとき h0 = 20:00 / h0〜h0+23h はすべての時刻 / h0+24h〜h0+72h は JST の時が 3 の倍数の時刻だけ（h0+72h ちょうどを含む）/ h0 より前と h0+72h より後は含まない / 予報データにない時刻は列を作らない（取得から時間が経った前回予報で末尾が短くなる）/ 合計列数が 24 + 16 = 40 前後になること（h0 の時刻によって 3 時間ごとの列数が変わる点も確認）
+- [X] T006 [P] `backend/tests/Unit/Domain/Marine/CoordinateTest.php`：境界値（緯度 ±90、経度 ±180）を受け付ける / 範囲外（90.01、-180.01 など）で `InvalidArgumentException` / 小数点以下 2 桁への丸め（27.123456789 → 27.12、27.755 → 27.76 など）/ `equals()` / `key()` が `27.75_129.05`・`-0.50_-120.00` の形式になる
+- [X] T007 [P] `backend/tests/Unit/Domain/Marine/CompassPointTest.php`：0° → N、11.24° → N、11.25° → NNE、22.5° → NNE、348.75° → N、348.74° → NNW、360° → N、-11.25° → N（時計回り側）、-22.5° → NNW、720° → N など、16 方位すべての中心値と境界値（data-model「CompassPoint」）
+- [X] T008 [P] `backend/tests/Unit/Domain/Marine/ForecastPeriodTest.php`：`startingAt(now, 73)` が now を UTC の正時に切り捨てた時刻から 73 時間後までになる / `from >= to` や正時でない値で `InvalidArgumentException`
+- [X] T009 [P] `backend/tests/Unit/Domain/Marine/MarineForecastTest.php`：`isReusableAt()`（fetchedAt + 1h の直前は true、ちょうどは false）/ `isFallbackUsableAt()`（+24h で同様）/ `nextRefetchAt()` = fetchedAt + 1h / `isComplete()`（どちらかが `FetchFailed` なら false、`NotProvidedAtLocation` は true）/ 不変条件違反（両グループ `FetchFailed`、`FetchFailed`・`NotProvidedAtLocation` のグループに値がある、時刻が昇順でない・重複）で `InvalidArgumentException`
+- [X] T010 [P] `backend/tests/Unit/Domain/Marine/ForecastTimelineTest.php`：`displayTimeZone = Asia/Tokyo` で、now = JST 20:15 のとき h0 = 20:00 / h0〜h0+23h はすべての時刻 / h0+24h〜h0+72h は JST の時が 3 の倍数の時刻だけ（h0+72h ちょうどを含む）/ h0 より前と h0+72h より後は含まない / 予報データにない時刻は列を作らない（取得から時間が経った前回予報で末尾が短くなる）/ 合計列数が 24 + 16 = 40 前後になること（h0 の時刻によって 3 時間ごとの列数が変わる点も確認）
 
 ### Implementation for Foundational
 
-- [ ] T011 [P] `backend/src/Domain/Marine/Coordinate.php`：final readonly の VO。生成時に範囲検証と小数点以下 2 桁への丸めを行い、`latitude()` / `longitude()` / `equals()` / `key()` を持つ（data-model「Coordinate」）
-- [ ] T012 [P] `backend/src/Domain/Marine/CompassPoint.php`：16 方位の backed enum（値は `N`, `NNE` … の文字列）と `fromDegrees(float): self`。日本語名は持たない
-- [ ] T013 [P] `backend/src/Domain/Marine/Availability.php`：enum `Available` / `NotProvidedAtLocation` / `FetchFailed`
-- [ ] T014 [P] `backend/src/Domain/Marine/HourlyForecast.php`：final readonly。`time`（UTC の正時）と 9 つの `?float`（windSpeed, windGust, windDirection, waveHeight, waveDirection, wavePeriod, swellHeight, swellDirection, swellPeriod）。風速などは VO にしない
-- [ ] T015 [P] `backend/src/Domain/Marine/FetchFailure.php`：`RuntimeException` を継承した例外。原因（ログ用）をメッセージに持つ
-- [ ] T016 [P] `backend/src/Domain/Marine/ForecastPeriod.php`：`from` / `to`（UTC の正時、from < to）と `startingAt(DateTimeImmutable $now, int $hours): self`
-- [ ] T017 `backend/src/Domain/Marine/MarineForecast.php`：coordinate、fetchedAt（UTC）、wind / sea（Availability）、hours（list<HourlyForecast>）と不変条件の検証、定数 `REUSE_PERIOD`（1 時間）/ `FALLBACK_PERIOD`（24 時間）、`isReusableAt()` / `isFallbackUsableAt()` / `nextRefetchAt()` / `isComplete()`（T011, T013, T014 に依存）
-- [ ] T018 `backend/src/Domain/Marine/ForecastTimeline.php`：`select(MarineForecast, DateTimeImmutable $now, DateTimeZone $displayTimeZone): list<HourlyForecast>`（data-model「ForecastTimeline」、research R6。T017 に依存）
-- [ ] T019 [P] `backend/src/Application/Marine/Port/MarineForecastProvider.php`（`forecast(Coordinate, ForecastPeriod): MarineForecast`、全体失敗時は `FetchFailure`）、`backend/src/Application/Marine/Port/MarineForecastCache.php`（`find(Coordinate): ?MarineForecast` / `save(MarineForecast): void`）、`backend/src/Application/Marine/Port/Clock.php`（`now(): DateTimeImmutable`。PSR-20 は Deptrac で Application から参照できないため自前で定義する）を作成する
-- [ ] T020 [P] `backend/src/Application/Marine/DTO/` に `ForecastStatus.php`（enum `Fresh` / `Stale` / `Unavailable` / `RateLimited`）、`GroupAvailability.php`（enum。Domain の Availability を写す）、`HourlyForecastView.php`、`MarineForecastView.php`、`MarineForecastResult.php` を作成する。スカラーと日本時間の `DateTimeImmutable` だけで構成し、Domain の型を持たない（data-model「Output DTO」）
-- [ ] T021 [P] `backend/src/Infrastructure/Marine/Clock/SystemClock.php`：Application の `Clock` を `Symfony\Component\Clock\ClockInterface` で実装し、UTC の `DateTimeImmutable` を返す
-- [ ] T022 [P] テスト用の部品を `backend/tests/Support/` に作成する：`FixedClock.php`（`Clock` 実装。`setNow()` / `advance()` で時刻を進められる）、`MarineForecastBuilder.php`（座標・fetchedAt・期間・Availability・各値を指定して MarineForecast を組み立てる）、`FakeMarineForecastProvider.php`（`MarineForecastProvider` 実装。既定では受け取った座標・期間の全時刻に決まった値を入れ、fetchedAt を Clock の現在時刻にした完全な予報を返す。`willFail()` で `FetchFailure`、`willReturnSeaAvailability()` で波・うねりのグループを `NotProvidedAtLocation` / `FetchFailed` にできる。呼ばれた回数を `callCount()` で返す）
-- [ ] T023 `backend/config/services.yaml` に `when@test` を追加し、`App\Application\Marine\Port\MarineForecastProvider` を `App\Tests\Support\FakeMarineForecastProvider` に、`App\Application\Marine\Port\Clock` を `App\Tests\Support\FixedClock` にエイリアスする（どちらも Functional Test から取り出せるよう public。FixedClock の初期時刻は `2026-10-05T11:15:00Z` = JST 20:15。T022 に依存）
-- [ ] T024 [P] `backend/templates/base.html.twig` を書き換える：`<html lang="ja">`、`<meta name="viewport" content="width=device-width, initial-scale=1">`、タイトルの既定値を `UMIYOMI`、Symfony 雛形の favicon を削除、`<footer>` に `<a href="https://open-meteo.com/">Weather data by Open-Meteo.com</a>` の帰属表示（research R1、contracts「画面の構成」8）
+- [X] T011 [P] `backend/src/Domain/Marine/Coordinate.php`：final readonly の VO。生成時に範囲検証と小数点以下 2 桁への丸めを行い、`latitude()` / `longitude()` / `equals()` / `key()` を持つ（data-model「Coordinate」）
+- [X] T012 [P] `backend/src/Domain/Marine/CompassPoint.php`：16 方位の backed enum（値は `N`, `NNE` … の文字列）と `fromDegrees(float): self`。日本語名は持たない
+- [X] T013 [P] `backend/src/Domain/Marine/Availability.php`：enum `Available` / `NotProvidedAtLocation` / `FetchFailed`
+- [X] T014 [P] `backend/src/Domain/Marine/HourlyForecast.php`：final readonly。`time`（UTC の正時）と 9 つの `?float`（windSpeed, windGust, windDirection, waveHeight, waveDirection, wavePeriod, swellHeight, swellDirection, swellPeriod）。風速などは VO にしない
+- [X] T015 [P] `backend/src/Domain/Marine/FetchFailure.php`：`RuntimeException` を継承した例外。原因（ログ用）をメッセージに持つ
+- [X] T016 [P] `backend/src/Domain/Marine/ForecastPeriod.php`：`from` / `to`（UTC の正時、from < to）と `startingAt(DateTimeImmutable $now, int $hours): self`
+- [X] T017 `backend/src/Domain/Marine/MarineForecast.php`：coordinate、fetchedAt（UTC）、wind / sea（Availability）、hours（list<HourlyForecast>）と不変条件の検証、定数 `REUSE_PERIOD`（1 時間）/ `FALLBACK_PERIOD`（24 時間）、`isReusableAt()` / `isFallbackUsableAt()` / `nextRefetchAt()` / `isComplete()`（T011, T013, T014 に依存）
+- [X] T018 `backend/src/Domain/Marine/ForecastTimeline.php`：`select(MarineForecast, DateTimeImmutable $now, DateTimeZone $displayTimeZone): list<HourlyForecast>`（data-model「ForecastTimeline」、research R6。T017 に依存）
+- [X] T019 [P] `backend/src/Application/Marine/Port/MarineForecastProvider.php`（`forecast(Coordinate, ForecastPeriod): MarineForecast`、全体失敗時は `FetchFailure`）、`backend/src/Application/Marine/Port/MarineForecastCache.php`（`find(Coordinate): ?MarineForecast` / `save(MarineForecast): void`）、`backend/src/Application/Marine/Port/Clock.php`（`now(): DateTimeImmutable`。PSR-20 は Deptrac で Application から参照できないため自前で定義する）を作成する
+- [X] T020 [P] `backend/src/Application/Marine/DTO/` に `ForecastStatus.php`（enum `Fresh` / `Stale` / `Unavailable` / `RateLimited`）、`GroupAvailability.php`（enum。Domain の Availability を写す）、`HourlyForecastView.php`、`MarineForecastView.php`、`MarineForecastResult.php` を作成する。スカラーと日本時間の `DateTimeImmutable` だけで構成し、Domain の型を持たない（data-model「Output DTO」）
+- [X] T021 [P] `backend/src/Infrastructure/Marine/Clock/SystemClock.php`：Application の `Clock` を `Symfony\Component\Clock\ClockInterface` で実装し、UTC の `DateTimeImmutable` を返す
+- [X] T022 [P] テスト用の部品を `backend/tests/Support/` に作成する：`FixedClock.php`（`Clock` 実装。`setNow()` / `advance()` で時刻を進められる）、`MarineForecastBuilder.php`（座標・fetchedAt・期間・Availability・各値を指定して MarineForecast を組み立てる）、`FakeMarineForecastProvider.php`（`MarineForecastProvider` 実装。既定では受け取った座標・期間の全時刻に決まった値を入れ、fetchedAt を Clock の現在時刻にした完全な予報を返す。`willFail()` で `FetchFailure`、`willReturnSeaAvailability()` で波・うねりのグループを `NotProvidedAtLocation` / `FetchFailed` にできる。呼ばれた回数を `callCount()` で返す）
+- [X] T023 `backend/config/services.yaml` に `when@test` を追加し、`App\Application\Marine\Port\MarineForecastProvider` を `App\Tests\Support\FakeMarineForecastProvider` に、`App\Application\Marine\Port\Clock` を `App\Tests\Support\FixedClock` にエイリアスする（どちらも Functional Test から取り出せるよう public。FixedClock の初期時刻は `2026-10-05T11:15:00Z` = JST 20:15。T022 に依存）
+- [X] T024 [P] `backend/templates/base.html.twig` を書き換える：`<html lang="ja">`、`<meta name="viewport" content="width=device-width, initial-scale=1">`、タイトルの既定値を `UMIYOMI`、Symfony 雛形の favicon を削除、`<footer>` に `<a href="https://open-meteo.com/">Weather data by Open-Meteo.com</a>` の帰属表示（research R1、contracts「画面の構成」8）
 
 **Checkpoint**: Domain のテストが通り、`composer check` が通る。ユーザーストーリーに着手できる
 

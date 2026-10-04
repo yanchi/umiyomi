@@ -21,3 +21,26 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+
+when@test:
+    services:
+        _defaults:
+            autowire: true
+            autoconfigure: true
+
+        # Functional Test から外部 API を呼ばず、時刻も固定するための差し替え。テストから取り出して操作できるよう public にする
+        App\Tests\Support\FixedClock:
+            public: true
+            arguments:
+                $now: '2026-10-05T11:15:00Z'
+
+        App\Tests\Support\FakeMarineForecastProvider:
+            public: true
+
+        App\Application\Marine\Port\Clock:
+            alias: App\Tests\Support\FixedClock
+            public: true
+
+        App\Application\Marine\Port\MarineForecastProvider:
+            alias: App\Tests\Support\FakeMarineForecastProvider
+            public: true

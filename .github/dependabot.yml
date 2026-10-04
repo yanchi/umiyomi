@@ -1,0 +1,31 @@
+# 依存パッケージの更新とセキュリティ修正の PR を Dependabot が作る
+version: 2
+updates:
+  - package-ecosystem: composer
+    directory: /backend
+    schedule:
+      interval: weekly
+      timezone: Asia/Tokyo
+    groups:
+      # Symfony は 8.1.* でそろえて上げる
+      symfony:
+        patterns: ["symfony/*"]
+      twig:
+        patterns: ["twig/*"]
+      dev-tools:
+        patterns:
+          - "phpstan/*"
+          - "phpunit/*"
+          - "friendsofphp/php-cs-fixer"
+          - "vincentlanglet/twig-cs-fixer"
+          - "deptrac/*"
+    ignore:
+      # Symfony のメジャー更新は計画して上げる（composer.json の extra.symfony.require とも揃える必要がある）
+      - dependency-name: "symfony/*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+      timezone: Asia/Tokyo

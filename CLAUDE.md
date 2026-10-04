@@ -49,7 +49,10 @@ docker compose exec php composer test:external    # 実際の外部APIを呼ぶ�
 docker compose exec php vendor/bin/phpunit --filter <テスト名>   # 単体のテストを実行
 docker compose exec php bin/console <command>     # Symfony コンソール
 docker compose exec php composer require <pkg>    # パッケージ追加（Flex レシピに設定を任せる）
+bash scripts/verify-prod.sh                       # 本番用イメージを compose.prod.yml で起動して確かめる（CI でも全 PR で実行）
 ```
+
+CI/CD は `.github/workflows/`。master への push でさくら VPS にデプロイされる（手順・初回設定・ロールバックは [deploy/README.md](deploy/README.md)）。
 
 テストの置き場所：`backend/tests/Unit`、`backend/tests/Functional`、`backend/tests/External`（実API）。
 

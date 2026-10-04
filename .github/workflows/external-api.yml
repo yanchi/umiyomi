@@ -1,0 +1,37 @@
+name: External API
+
+# 実際の Open-Meteo を呼ぶテスト。通常の CI では外部APIを叩かないため、
+# レスポンス形式の変更に気づけるよう週1回と手動でだけ実行する
+on:
+  schedule:
+    # 毎週月曜 09:00 JST
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  external:
+    name: PHPUnit (external)
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: intl, zip, apcu
+          coverage: none
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Run external API tests
+        run: composer test:external

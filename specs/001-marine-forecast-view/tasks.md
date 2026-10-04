@@ -257,6 +257,6 @@ Task: "T042 HomeController と _form.html.twig"
 ## Notes
 
 - [P] は別ファイルで、未完了のタスクに依存しないもの
-- 実装前の人間のレビュー：plan.md の Constitution Check で「承認待ち」になっている（Domain 設計・画面/URL 設計・外部 API Provider・Security）。`/speckit.implement` に進む前に、plan の「レビューで判断してほしい点」1〜5 の承認を得る
+- 実装前の人間のレビュー：plan.md の Domain 設計・画面/URL 設計・外部 API Provider・Security（回数制限）と「レビューで判断してほしい点」1〜5 は 2026-10-05 に承認済み。Open-Meteo の無料 API は非商用に限られるため、検証中は広告・課金を入れない
 - タスクごと、または論理的なまとまりごとにコミットする
 - 各 Checkpoint でそのストーリーを単独で確認する

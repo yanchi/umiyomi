@@ -37,11 +37,11 @@ Open-Meteo 固有の形式は Infrastructure の Provider 固有 DTO と Mapper 
 | III. 外部海況 API の隔離とキャッシュ | ✅ | Port `MarineForecastProvider::forecast(Coordinate, ForecastPeriod)` を Application に定義し、Open-Meteo の実装・Provider 固有 DTO・Mapper は Infrastructure に置く（[海況API・開発フェーズ方針](../../docs/MARINE_API_STRATEGY.md) の境界どおり）。丸めた座標ごとに Symfony Cache で 1 時間再利用 |
 | IV. 判断材料の提示と断定の禁止 | ✅ | 時刻ごとの数値だけを示し、傾向要約・良し悪しの判定は作らない。全状態で「最終更新」（Stale 含む）と注意書きを表示。断定表現がないことを Functional Test で確認 |
 | V. 重点領域のテスト | ✅ | Coordinate・CompassPoint・MarineForecast・ForecastTimeline・UseCase・Open-Meteo 変換・Provider・Cache・入力パーサー・ViewModel 変換を Unit、主要経路を Functional、実 API を External に分離 |
-| ワークフロー（人間のレビュー） | ⏸ 承認待ち | 本 plan は Domain 設計・画面/URL 設計・外部 API Provider・Security（回数制限）を含むため、実装前に人間の承認が必要 |
+| ワークフロー（人間のレビュー） | ✅ 承認済み（2026-10-05） | 本 plan は Domain 設計・画面/URL 設計・外部 API Provider・Security（回数制限）を含むため、実装前に人間の承認を得た。下記 1〜5 はすべて記載どおりで承認 |
 
 **Post-design re-check（Phase 1 後）**: 違反なし。Complexity Tracking は空。
 
-### レビューで判断してほしい点
+### レビューで判断してほしい点（2026-10-05 承認：すべて記載どおり）
 
 1. **Open-Meteo の利用条件**（research R1）：無料 API は非商用限定。フェーズ方針の Phase 1（ユーザー検証）は無料枠で進め、課金開始（Phase 3）前に切り替える前提。徳之島周辺などでの検証利用が非商用の範囲に収まるか
 2. **回数制限の超過時に前回の予報を出さない**（research R5）：spec の文言どおりにしたが、24 時間以内の前回予報を警告付きで出す方が親切という考え方もある

@@ -44,3 +44,7 @@ when@test:
         App\Application\Marine\Port\MarineForecastProvider:
             alias: App\Tests\Support\FakeMarineForecastProvider
             public: true
+
+        # 実際の Open-Meteo を呼ぶ External テスト（tests/External）から取り出すため、本物の Provider も残す
+        App\Infrastructure\Marine\OpenMeteo\OpenMeteoMarineForecastProvider:
+            public: true

@@ -7,13 +7,18 @@ namespace App\Tests\Functional;
 use App\Domain\Marine\Availability;
 use App\Tests\Support\FakeMarineForecastProvider;
 use App\Tests\Support\FixedClock;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\DomCrawler\Crawler;
 
 final class ForecastPageTest extends WebTestCase
 {
     private const string DISCLAIMER = 'この予報は航海の安全を保証するものではありません。出航前に気象庁などが発表する警報・注意報もあわせて確認してください。';
+
+    // 航海の安全や出航の可否を断定する表現（FR-010）
+    private const array ASSERTIVE_PHRASES = ['安全です', '出航できます', '問題ありません'];
 
     private KernelBrowser $client;
 
@@ -156,6 +161,114 @@ final class ForecastPageTest extends WebTestCase
         self::assertResponseStatusCodeSame(200);
         self::assertSelectorTextContains('body', 'この地点では波・うねりの予報が得られません');
         self::assertSame(['風速 (m/s)', '突風 (m/s)', '風向'], $crawler->filter('table tbody th')->each(static fn ($node): string => $node->text()));
+    }
+
+    public function testReopeningUrlShowsSameForecastAndFilledForm(): void
+    {
+        $first = $this->client->request('GET', '/forecast?lat=27.75&lon=129.05');
+        $second = $this->client->request('GET', '/forecast?lat=27.75&lon=129.05');
+
+        self::assertResponseStatusCodeSame(200);
+        self::assertSame($first->filter('.location')->text(), $second->filter('.location')->text());
+        self::assertSame($first->filter('.last-updated')->text(), $second->filter('.last-updated')->text());
+        self::assertSame('27.75', $second->filter('#lat')->attr('value'));
+        self::assertSame('129.05', $second->filter('#lon')->attr('value'));
+    }
+
+    public function testSwitchingLocationFromForecastPage(): void
+    {
+        $crawler = $this->client->request('GET', '/forecast?lat=27.75&lon=129.05');
+
+        $form = $crawler->selectButton('予報を表示')->form(['lat' => '35.00', 'lon' => '139.80']);
+        $this->client->submit($form);
+
+        self::assertResponseStatusCodeSame(200);
+        self::assertSame('/forecast?lat=35.00&lon=139.80', $this->client->getRequest()->getRequestUri());
+        self::assertSelectorTextContains('.location', '北緯 35.00° / 東経 139.80°');
+    }
+
+    public function testEquivalentCoordinatesShareCachedForecast(): void
+    {
+        $this->client->request('GET', '/forecast?lat=27.75&lon=129.05');
+        $this->client->request('GET', '/forecast?lat=27.7500&lon=129.05');
+
+        self::assertResponseStatusCodeSame(200);
+        self::assertSame(1, $this->provider()->callCount());
+    }
+
+    public function testFullWidthInputIsKeptInFormWithoutRedirect(): void
+    {
+        $crawler = $this->client->request('GET', '/forecast?lat='.rawurlencode('２７．７５').'&lon=129.05');
+
+        self::assertResponseStatusCodeSame(200);
+        self::assertSame('２７．７５', $crawler->filter('#lat')->attr('value'));
+        self::assertSelectorTextContains('.location', '北緯 27.75°');
+    }
+
+    public function testUnknownQueryParametersAreIgnored(): void
+    {
+        $crawler = $this->client->request('GET', '/forecast?lat=27.75&lon=129.05&utm_source=bookmark');
+
+        self::assertResponseStatusCodeSame(200);
+        self::assertSelectorTextContains('.location', '北緯 27.75° / 東経 129.05°');
+        self::assertCount(9, $crawler->filter('table tbody tr'));
+    }
+
+    /**
+     * @return iterable<string, array{string, bool, bool}>
+     */
+    public static function screenProvider(): iterable
+    {
+        // [画面, 予報ページか, 一覧があるか]
+        yield 'home' => ['home', false, false];
+        yield 'fresh' => ['fresh', true, true];
+        yield 'stale' => ['stale', true, true];
+        yield 'unavailable' => ['unavailable', true, false];
+        yield 'rate limited' => ['rate_limited', true, false];
+        yield 'invalid input' => ['invalid_input', true, false];
+    }
+
+    #[DataProvider('screenProvider')]
+    public function testScreensGiveFactsWithoutAssertingSafety(string $screen, bool $isForecastPage, bool $hasTable): void
+    {
+        $crawler = $this->open($screen);
+        $text = $crawler->filter('body')->text();
+
+        foreach (self::ASSERTIVE_PHRASES as $phrase) {
+            self::assertStringNotContainsString($phrase, $text);
+        }
+        if ($isForecastPage) {
+            self::assertStringContainsString(self::DISCLAIMER, $text);
+        }
+        self::assertCount($hasTable ? 1 : 0, $crawler->filter('table'));
+        if ($hasTable) {
+            self::assertMatchesRegularExpression('/最終更新：\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}/', $text);
+        }
+    }
+
+    private function open(string $screen): Crawler
+    {
+        switch ($screen) {
+            case 'home':
+                return $this->client->request('GET', '/');
+            case 'stale':
+                $this->client->request('GET', '/forecast?lat=27.75&lon=129.05');
+                $this->clock()->advance('+3 hours');
+                $this->provider()->willFail();
+                break;
+            case 'unavailable':
+                $this->provider()->willFail();
+                break;
+            case 'rate_limited':
+                for ($i = 0; $i < 30; ++$i) {
+                    $this->client->request('GET', \sprintf('/forecast?lat=%.2f&lon=120.00', 10 + $i));
+                }
+                break;
+            case 'invalid_input':
+                return $this->client->request('GET', '/forecast?lat=N27&lon=');
+        }
+
+        return $this->client->request('GET', '/forecast?lat=27.75&lon=129.05');
     }
 
     private function provider(): FakeMarineForecastProvider

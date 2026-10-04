@@ -157,11 +157,11 @@ description: "Task list for 001-marine-forecast-view"
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T061 [US3] `backend/tests/Functional/ForecastPageTest.php` に追加する：`/forecast?lat=27.75&lon=129.05` を 2 回開くと同じ地点・同じ最終更新で、入力欄の値が `27.75` / `129.05` / 予報ページのフォームから `lat=35.00&lon=139.80` を送信すると `/forecast?lat=35.00&lon=139.80` に移り地点表示が切り替わる / `lat=27.7500&lon=129.05` は `27.75` と同じキャッシュを使い Fake の `callCount()` が増えない / `lat=２７．７５` は入力欄に全角のまま残り、`北緯 27.75°` の予報が表示される / 未知のクエリパラメータを付けても同じ表示になる
+- [X] T061 [US3] `backend/tests/Functional/ForecastPageTest.php` に追加する：`/forecast?lat=27.75&lon=129.05` を 2 回開くと同じ地点・同じ最終更新で、入力欄の値が `27.75` / `129.05` / 予報ページのフォームから `lat=35.00&lon=139.80` を送信すると `/forecast?lat=35.00&lon=139.80` に移り地点表示が切り替わる / `lat=27.7500&lon=129.05` は `27.75` と同じキャッシュを使い Fake の `callCount()` が増えない / `lat=２７．７５` は入力欄に全角のまま残り、`北緯 27.75°` の予報が表示される / 未知のクエリパラメータを付けても同じ表示になる
 
 ### Implementation for User Story 3
 
-- [ ] T062 [US3] `backend/templates/forecast/_form.html.twig` と `backend/src/Presentation/Web/Controller/ForecastController.php` を確認・修正し、T061 を通す：フォームが `GET /forecast` へ送ること、入力欄に正規化前の文字列（`rawLatitude` / `rawLongitude`）を戻すこと、正規化した URL へリダイレクトしないこと（contracts「Query」）
+- [X] T062 [US3] `backend/templates/forecast/_form.html.twig` と `backend/src/Presentation/Web/Controller/ForecastController.php` を確認・修正し、T061 を通す：フォームが `GET /forecast` へ送ること、入力欄に正規化前の文字列（`rawLatitude` / `rawLongitude`）を戻すこと、正規化した URL へリダイレクトしないこと（contracts「Query」）
 
 **Checkpoint**: すべてのユーザーストーリーが単独で動く
 
@@ -171,10 +171,10 @@ description: "Task list for 001-marine-forecast-view"
 
 **Purpose**: 複数のストーリーにまたがる確認と仕上げ
 
-- [ ] T063 [P] `backend/tests/External/OpenMeteoMarineForecastProviderTest.php`：実際の Open-Meteo を呼び、海上の地点（27.75, 129.05）で wind・sea とも `Available` で 73 時間分の時刻がある / 内陸の地点（36.65, 138.18）で sea が `NotProvidedAtLocation`、wind が `Available`（`composer test:external` でだけ実行される）
-- [ ] T064 [P] `backend/tests/Functional/ForecastPageTest.php` に、トップ・Fresh・Stale・Unavailable・RateLimited・入力エラーのすべての画面で「安全です」「出航できます」「問題ありません」を含まないこと、予報ページのすべての状態で安全の注意書きがあること、表がある状態では必ず `最終更新：YYYY/MM/DD HH:mm` の形式があることを data provider で確認するテストを追加する（SC-005、FR-007、FR-009、FR-010）
-- [ ] T065 [P] ファイルが置かれたディレクトリの `.gitkeep` を削除する（`backend/src/Domain/Marine/.gitkeep`、`backend/src/Application/Marine/.gitkeep`、`backend/src/Infrastructure/Marine/.gitkeep`、`backend/src/Presentation/Web/Controller/.gitkeep`、`backend/tests/Unit/.gitkeep`、`backend/tests/External/.gitkeep`）
-- [ ] T066 `docker compose exec php composer check` と `docker compose exec php composer test:external` を実行し、すべて通ることを確認する
+- [X] T063 [P] `backend/tests/External/OpenMeteoMarineForecastProviderTest.php`：実際の Open-Meteo を呼び、海上の地点（27.75, 129.05）で wind・sea とも `Available` で 73 時間分の時刻がある / 内陸の地点（36.65, 138.18）で sea が `NotProvidedAtLocation`、wind が `Available`（`composer test:external` でだけ実行される）
+- [X] T064 [P] `backend/tests/Functional/ForecastPageTest.php` に、トップ・Fresh・Stale・Unavailable・RateLimited・入力エラーのすべての画面で「安全です」「出航できます」「問題ありません」を含まないこと、予報ページのすべての状態で安全の注意書きがあること、表がある状態では必ず `最終更新：YYYY/MM/DD HH:mm` の形式があることを data provider で確認するテストを追加する（SC-005、FR-007、FR-009、FR-010）
+- [X] T065 [P] ファイルが置かれたディレクトリの `.gitkeep` を削除する（`backend/src/Domain/Marine/.gitkeep`、`backend/src/Application/Marine/.gitkeep`、`backend/src/Infrastructure/Marine/.gitkeep`、`backend/src/Presentation/Web/Controller/.gitkeep`、`backend/tests/Unit/.gitkeep`、`backend/tests/External/.gitkeep`）
+- [X] T066 `docker compose exec php composer check` と `docker compose exec php composer test:external` を実行し、すべて通ることを確認する
 - [ ] T067 `specs/001-marine-forecast-view/quickstart.md` の「3. ブラウザでの確認」の 9 項目を、PC 幅と 360px 幅の両方で確認する
 
 ---
@@ -260,3 +260,14 @@ Task: "T042 HomeController と _form.html.twig"
 - 実装前の人間のレビュー：plan.md の Domain 設計・画面/URL 設計・外部 API Provider・Security（回数制限）と「レビューで判断してほしい点」1〜5 は 2026-10-05 に承認済み。Open-Meteo の無料 API は非商用に限られるため、検証中は広告・課金を入れない
 - タスクごと、または論理的なまとまりごとにコミットする
 - 各 Checkpoint でそのストーリーを単独で確認する
+
+## 実装時に計画から変えた点（2026-10-05）
+
+- **test 環境のキャッシュ（T005・T053）**：`cache.marine_forecast` と `cache.rate_limiter` を test でも ArrayAdapter にせず、既定のファイルシステム（`var/cache/test`）のままにした。`disableReboot()` でも 2 回目以降のリクエストで `services_resetter` が `kernel.reset` タグ付きのプールを空にするため、ArrayAdapter では「同じ地点を 2 回開いても取得は 1 回」「31 地点目で 429」を Functional Test で確かめられない。テスト間で混ざらないよう `ForecastPageTest::setUp()` で両プールを clear する
+- **キャッシュの有効期限（T037）**：プールの既定値に頼らず `expiresAfter(FALLBACK_PERIOD)`（保存時点から 24 時間）を指定した。取得日時を基準にすると、時刻を固定した Functional Test が実時間で翌日以降に動いたとき即座に期限切れになる
+- **`OpenMeteoHourly`（T033・T034）**：2 つの Provider 固有 DTO に共通する `hourly` ブロックの形式チェックを、Infrastructure 内部のヘルパーとして切り出した（plan のファイル一覧にないクラス）
+- **テスト用の部品**：`tests/Support/` に `OpenMeteoFixture`（フィクスチャの読み込み）、`FakeFetchRateLimiter`（T049）、`RecordingLogger`（Provider のログ確認）を追加した
+- **PHPStan（`phpstan.dist.neon`）**：Fake Provider・固定時計は `when@test` でだけ登録され、PHPStan は dev のコンテナを参照するため、`tests/Functional/*` に限り `symfonyContainer.serviceNotFound` を無視する設定を追加した
+- **`services.yaml` の `when@test`（T063）**：External テストから取り出せるよう、本物の `OpenMeteoMarineForecastProvider` を public にした
+- **ログ（T055）**：両方の API が失敗した場合も、UseCase は前回の予報で代替するだけで原因を残せない（Application は Deptrac でロガーを参照できない）ため、Provider が `FetchFailure` を投げる前に warning を記録する
+- **ブラウザでの目視確認（T046・T067）**：画面の内容（ステータス・文言・行と列）は dev サーバーに実 API で問い合わせて確認したが、360px 幅での見た目は人間の確認待ち

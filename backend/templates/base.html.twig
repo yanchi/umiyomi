@@ -7,6 +7,9 @@
         <meta name="description" content="{% block meta_description %}緯度・経度を入力すると、風・波・うねりの時間別予報を確認できます。出航の判断には、気象庁などの警報・注意報も確認してください。{% endblock %}">
         {# 新しい画面が意図せず検索エンジンに載らないよう、既定は「登録しない」にする。載せたい画面だけ空で上書きする #}
         {% block robots %}<meta name="robots" content="noindex">{% endblock %}
+        {# robots と同じく既定は出さない。新しい画面が意図せず正規のアドレス・構造化データを持たないよう、登録対象の画面だけが上書きする（noindex と canonical の矛盾も避ける） #}
+        {% block canonical %}{% endblock %}
+        {% block structured_data %}{% endblock %}
         <link rel="icon" href="/favicon.ico" sizes="32x32">
         <link rel="icon" href="{{ asset('images/icon.svg') }}" type="image/svg+xml">
         <link rel="icon" href="{{ asset('images/icon-192.png') }}" type="image/png" sizes="192x192">

@@ -40,7 +40,7 @@ Search Console・リッチリザルトテストでの確認（SC-001〜SC-004）
 
 **Purpose**: 新しいパッケージ・拡張は追加しない（plan.md）。変更前の基準を確認するだけ
 
-- [ ] T001 `docker compose up -d` のあと `docker compose exec php composer check` を実行し、変更前に全部通ることを確かめる（失敗するなら先に原因を報告して止まる）
+- [X] T001 `docker compose up -d` のあと `docker compose exec php composer check` を実行し、変更前に全部通ることを確かめる（失敗するなら先に原因を報告して止まる）
 
 ---
 
@@ -48,8 +48,8 @@ Search Console・リッチリザルトテストでの確認（SC-001〜SC-004）
 
 **Purpose**: US2（canonical）と US3（JSON-LD）が上書きする `<head>` のブロックを用意する。既定は空なので、この時点では全画面の出力は変わらない
 
-- [ ] T002 `backend/templates/base.html.twig` の `{% block robots %}...{% endblock %}` の直後に `{% block canonical %}{% endblock %}` と `{% block structured_data %}{% endblock %}` を追加する。直前に「robots と同じく既定は出さない。新しい画面が意図せず正規のアドレス・構造化データを持たないよう、登録対象の画面だけが上書きする（noindex と canonical の矛盾も避ける）」旨を日本語コメントで書く（research R4、data-model「登録対象ページ」）
-- [ ] T003 `docker compose exec php composer check` を通す（既存の HeadMetaTest などが変わらず通ること）
+- [X] T002 `backend/templates/base.html.twig` の `{% block robots %}...{% endblock %}` の直後に `{% block canonical %}{% endblock %}` と `{% block structured_data %}{% endblock %}` を追加する。直前に「robots と同じく既定は出さない。新しい画面が意図せず正規のアドレス・構造化データを持たないよう、登録対象の画面だけが上書きする（noindex と canonical の矛盾も避ける）」旨を日本語コメントで書く（research R4、data-model「登録対象ページ」）
+- [X] T003 `docker compose exec php composer check` を通す（既存の HeadMetaTest などが変わらず通ること）
 
 **Checkpoint**: 全テンプレートで `canonical`・`structured_data` を上書きできる。出力は従来と同じ
 
@@ -65,7 +65,7 @@ Search Console・リッチリザルトテストでの確認（SC-001〜SC-004）
 
 > 先に書き、実装前に失敗することを確認する
 
-- [ ] T004 [P] [US1] `backend/tests/Functional/HomeGuideTest.php` を新規作成する（既存の `backend/tests/Functional/FavoritesMarkupTest.php` と同じ書き方。Fake Provider を使い、トップの表示で Provider の呼び出しが 0 回であることも確かめる）。`GET /` について次を検査する：
+- [X] T004 [P] [US1] `backend/tests/Functional/HomeGuideTest.php` を新規作成する（既存の `backend/tests/Functional/FavoritesMarkupTest.php` と同じ書き方。Fake Provider を使い、トップの表示で Provider の呼び出しが 0 回であることも確かめる）。`GET /` について次を検査する：
   - `h1` がちょうど 1 つで、`h1.site-title a` の文字が「UMIYOMI」、`h1 .site-title__tagline` の文字が「風・波・うねりの予報を出航前に確認」
   - `h2` の文字が順に「お気に入り」（既存の見出しの文言に合わせる）「UMIYOMI でできること」「使い方」「ご利用にあたって」で、後ろの 3 つが `section.home-guide` の中にある
   - `section.home-guide` が、入力欄（`form`）とお気に入り（`favorites/_manage_list.html.twig` の要素）より文書順で後ろにある
@@ -73,29 +73,29 @@ Search Console・リッチリザルトテストでの確認（SC-001〜SC-004）
   - `section.home-guide a[href]` が 0 個（FR-007a）
   - `section.home-guide` とその祖先に `hidden` 属性がない（JavaScript・localStorage に依存しない。spec Edge Cases）
   - 本文・h1・リード文に「安全です」「出航できます」「問題ありません」を含まない（FR-012）
-- [ ] T005 [P] [US1] `backend/tests/Functional/HeadMetaTest.php` を更新する：
+- [X] T005 [P] [US1] `backend/tests/Functional/HeadMetaTest.php` を更新する：
   - クラス定数 `HOME_DESCRIPTION` に contracts/web-ui.md「トップの説明文」の文字列を追加し、`testHomeMeta` でトップの `meta[name="description"]` が `HOME_DESCRIPTION` と一致すること、`mb_strlen` が 120 以下であること、`og:description` と一致することを検査する（FR-010）。他の画面のテスト（`testForecastMeta` など）は `COMMON_DESCRIPTION` のまま
   - `testOpenGraphOnEveryScreen` などがトップにも `COMMON_DESCRIPTION` を期待している箇所があれば、トップだけ `HOME_DESCRIPTION` に変える
   - `screens()` に外部送信の案内（`'external transmission' => ['external_transmission']`。`open()` に `/external-transmission` を開く分岐を足す）を追加し、`meta[name="robots"][content="noindex"]` が 1 つあることを検査するテスト（`testExternalTransmissionMeta`）を足す（quickstart「robots」、FR-001。現状は `screens()` にも `ExternalTransmissionPageTest` にも robots の検査がない）
   - `testHomeMeta` の `meta robots` が 0 個の検査は維持する
   - 実装前に失敗することを確認する
-- [ ] T006 [P] [US1] `e2e/tests/home.spec.js` を新規作成する（既存の `e2e/tests/favorites.spec.js` と同じ書き方）。トップを開いた直後、スクロールせずに緯度・経度の入力欄と「予報を表示」ボタンが `toBeInViewport()` であること（desktop・mobile の両 project で動く）。加えて `test.describe` 内で `test.use({ viewport: { width: 375, height: 667 } })` にした同じ検査を 1 つ置く（SC-006）。「UMIYOMI でできること」の見出しが表示されていること（`toBeVisible()` をスクロール後に）も確かめる
+- [X] T006 [P] [US1] `e2e/tests/home.spec.js` を新規作成する（既存の `e2e/tests/favorites.spec.js` と同じ書き方）。トップを開いた直後、スクロールせずに緯度・経度の入力欄と「予報を表示」ボタンが `toBeInViewport()` であること（desktop・mobile の両 project で動く）。加えて `test.describe` 内で `test.use({ viewport: { width: 375, height: 667 } })` にした同じ検査を 1 つ置く（SC-006）。「UMIYOMI でできること」の見出しが表示されていること（`toBeVisible()` をスクロール後に）も確かめる
 
 ### Implementation for User Story 1
 
-- [ ] T007 [US1] `backend/templates/home/index.html.twig` を contracts/web-ui.md「トップの本文」のとおりに変更する：
+- [X] T007 [US1] `backend/templates/home/index.html.twig` を contracts/web-ui.md「トップの本文」のとおりに変更する：
   - `{% set home_description = '出航前に、指定した緯度・経度の風速・風向・波高・波向・波周期・うねりの時間別予報を一覧で確認できます。出航の判断には、気象庁などの警報・注意報もあわせて確認してください。' %}` をファイル上部（`analytics_page` の下）に置き、`{% block meta_description %}{{ home_description }}{% endblock %}` で上書きする（US3 の JSON-LD でも同じ変数を使うため。contracts「トップの JSON-LD」）
   - h1 を `<h1 class="site-title"><a href="{{ path('app_home') }}">UMIYOMI</a> <span class="site-title__tagline">風・波・うねりの予報を出航前に確認</span></h1>` にする。リード文は変えない
   - `{{ include('favorites/_manage_list.html.twig') }}` の後ろに `<section class="home-guide" aria-label="UMIYOMI について">` を追加し、h2「UMIYOMI でできること」（段落 2 つ・項目のリスト・最終更新の段落）、h2「使い方」（`<ol>` の 3 手順）、h2「ご利用にあたって」（段落 1 つ）を contracts の文言どおりに書く。リンク（`<a>`）は置かない
   - `{% block robots %}{% endblock %}` の上のコメントを「トップだけ検索エンジンへの登録を許可するため meta を出さない」に改め、nginx の `X-Robots-Tag` が残る前提の記述を消す
-- [ ] T008 [US1] `backend/assets/styles/app.css` の `.site-title` の近くに、`.site-title__tagline`（`display: block`、h1 より小さい文字・通常の太さ。スマホ幅で 1 行に収まる大きさ）と `.home-guide`（入力欄・お気に入りとの間の余白、`h2`・`ul`・`ol` の余白。既存の見出し・本文の見た目に合わせる）を少量足す。最初の画面の高さを増やさないよう、tagline の行の高さを詰める（SC-006）
-- [ ] T009 [US1] `deploy/nginx/umiyomi.conf` を contracts「Web サーバー」のとおりに変更する：server 全体の `add_header X-Robots-Tag "noindex, nofollow" always;` とその上のコメントを消し、`location ^~ /.well-known/acme-challenge/` に `add_header X-Robots-Tag "noindex" always;` を足す。コメントに「アプリの画面は meta robots で登録を制御する（トップだけ登録可）。nginx が直接 200 で中身を返すのはチャレンジのファイルだけなので、そこにだけ付ける（502/504 は登録されず、301 は転送先で判断される）」旨を書く（research R8）
-- [ ] T010 [US1] `scripts/verify-prod.sh` の「5. ホストの nginx の vhost」を変更する（FR-016、research R12）：
+- [X] T008 [US1] `backend/assets/styles/app.css` の `.site-title` の近くに、`.site-title__tagline`（`display: block`、h1 より小さい文字・通常の太さ。スマホ幅で 1 行に収まる大きさ）と `.home-guide`（入力欄・お気に入りとの間の余白、`h2`・`ul`・`ol` の余白。既存の見出し・本文の見た目に合わせる）を少量足す。最初の画面の高さを増やさないよう、tagline の行の高さを詰める（SC-006）
+- [X] T009 [US1] `deploy/nginx/umiyomi.conf` を contracts「Web サーバー」のとおりに変更する：server 全体の `add_header X-Robots-Tag "noindex, nofollow" always;` とその上のコメントを消し、`location ^~ /.well-known/acme-challenge/` に `add_header X-Robots-Tag "noindex" always;` を足す。コメントに「アプリの画面は meta robots で登録を制御する（トップだけ登録可）。nginx が直接 200 で中身を返すのはチャレンジのファイルだけなので、そこにだけ付ける（502/504 は登録されず、301 は転送先で判断される）」旨を書く（research R8）
+- [X] T010 [US1] `scripts/verify-prod.sh` の「5. ホストの nginx の vhost」を変更する（FR-016、research R12）：
   - `contains '検索エンジンに載せない (X-Robots-Tag)' ...` と `contains '404 にも付く' ...` を削除し、`ok 'トップに X-Robots-Tag が付かない'`（`$VIA_VHOST` に `X-Robots-Tag` が含まれないこと。`grep -qi` で あり／なし を出す既存の書き方）に置き換える
   - certbot のチャレンジのパスに `X-Robots-Tag: noindex` が付くことを確かめる：`curl -s -o /dev/null -D - -H "Host: ${HOST}" "http://127.0.0.1:${VHOST_PORT}/.well-known/acme-challenge/verify"` の応答（ファイルがないので 404。`always` により付く）に `X-Robots-Tag: noindex` が含まれること
   - 「vhost を本当に通して、検索エンジンに載せないヘッダーが付くか確かめる」のコメントを、新しい確認内容に合わせて改める
-- [ ] T011 [US1] `scripts/verify-prod.sh` の「2. 画面とアセット」に、本番イメージでの robots の確認を足す（FR-016）：トップ（`$HOME_HTML`）に `name="robots"` がないこと、予報の入力不正（`$BASE/forecast?lat=N27&lon=`。外部 API を呼ばない 422）・外部送信の案内（`$BASE/external-transmission`）・404（`$BASE/nope`）の HTML に `<meta name="robots" content="noindex">` があること。フィードバック案内はフォーム未設定で 404 のため対象外である旨を 1 行コメントで書く
-- [ ] T012 [US1] `docker compose exec php composer check` を通し（T004・T005 が通ること）、`docker compose --profile e2e run --rm --build e2e` で T006 が desktop・mobile とも通ること、`bash scripts/verify-prod.sh` が全部成功することを確かめる
+- [X] T011 [US1] `scripts/verify-prod.sh` の「2. 画面とアセット」に、本番イメージでの robots の確認を足す（FR-016）：トップ（`$HOME_HTML`）に `name="robots"` がないこと、予報の入力不正（`$BASE/forecast?lat=N27&lon=`。外部 API を呼ばない 422）・外部送信の案内（`$BASE/external-transmission`）・404（`$BASE/nope`）の HTML に `<meta name="robots" content="noindex">` があること。フィードバック案内はフォーム未設定で 404 のため対象外である旨を 1 行コメントで書く
+- [X] T012 [US1] `docker compose exec php composer check` を通し（T004・T005 が通ること）、`docker compose --profile e2e run --rm --build e2e` で T006 が desktop・mobile とも通ること、`bash scripts/verify-prod.sh` が全部成功することを確かめる
 
 **Checkpoint**: トップだけが登録可能になり、本文・見出し・説明文がそろう。ここだけでもマージ・公開できる（MVP）
 

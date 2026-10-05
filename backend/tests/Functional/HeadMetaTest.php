@@ -22,6 +22,8 @@ use Symfony\Component\Filesystem\Filesystem;
 final class HeadMetaTest extends WebTestCase
 {
     private const string COMMON_DESCRIPTION = '緯度・経度を入力すると、風・波・うねりの時間別予報を確認できます。出航の判断には、気象庁などの警報・注意報も確認してください。';
+    // トップだけ、表示する数値の種類が分かる説明文にする（007 FR-010）
+    private const string HOME_DESCRIPTION = '出航前に、指定した緯度・経度の風速・風向・波高・波向・波周期・うねりの時間別予報を一覧で確認できます。出航の判断には、気象庁などの警報・注意報もあわせて確認してください。';
     private const string IMAGE_ALT = 'UMIYOMI のロゴ。風・波・うねりの予報を出航前に確認するサービス';
 
     // 航海の安全や出航の可否を断定する表現（FR-008、SC-004）
@@ -60,6 +62,7 @@ final class HeadMetaTest extends WebTestCase
         yield 'forecast 429' => ['rate_limited'];
         yield 'forecast 503' => ['unavailable'];
         yield 'feedback' => ['feedback'];
+        yield 'external transmission' => ['external_transmission'];
         yield 'not found' => ['not_found'];
         yield 'server error' => ['server_error'];
     }
@@ -228,9 +231,22 @@ final class HeadMetaTest extends WebTestCase
         $crawler = $this->client->request('GET', '/');
 
         self::assertSame('UMIYOMI｜風・波・うねりの予報を出航前に確認', trim($crawler->filter('head title')->text()));
-        self::assertSame(self::COMMON_DESCRIPTION, $crawler->filter('head meta[name="description"]')->attr('content'));
+        $description = (string) $crawler->filter('head meta[name="description"]')->attr('content');
+        self::assertSame(self::HOME_DESCRIPTION, $description);
+        // 検索結果で省略されにくい長さに収める（007 FR-010）
+        self::assertLessThanOrEqual(120, mb_strlen($description));
+        self::assertSame($description, $this->meta($crawler, 'og:description'));
         // 登録を許可するのはトップだけ（FR-011）
         self::assertCount(0, $crawler->filter('head meta[name="robots"]'));
+    }
+
+    public function testExternalTransmissionMeta(): void
+    {
+        $crawler = $this->open('external_transmission');
+
+        self::assertResponseStatusCodeSame(200);
+        // 登録対象はトップだけで、案内画面は検索エンジンに載せない（007 FR-001）
+        self::assertCount(1, $crawler->filter('head meta[name="robots"][content="noindex"]'));
     }
 
     public function testForecastMeta(): void
@@ -328,6 +344,8 @@ final class HeadMetaTest extends WebTestCase
                 return $this->client->request('GET', '/forecast?lat=27.75&lon=129.05');
             case 'feedback':
                 return $this->client->request('GET', '/feedback');
+            case 'external_transmission':
+                return $this->client->request('GET', '/external-transmission');
             case 'not_found':
                 return $this->client->request('GET', '/no-such-page?lat=<script>alert(1)</script>');
             case 'server_error':

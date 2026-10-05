@@ -184,6 +184,15 @@ ok '.env は配信しない' \
    "$([ "$(http_code "$BASE/.env")" != '200' ] && echo 配信しない || echo 配信される)" '配信しない'
 ok 'プロファイラが無い' "$(http_code "$BASE/_profiler")" '404'
 
+# 検索エンジンへの登録（007）。登録対象はトップだけで、他の画面はアプリの meta robots で noindex にする。
+# フィードバック案内はフォーム未設定で 404 になるため、ここでは確かめない（404 の画面として確かめる）
+has_noindex() { printf '%s' "$1" | grep -q '<meta name="robots" content="noindex">' && echo あり || echo なし; }
+ok 'トップに meta robots がない' \
+   "$(printf '%s' "$HOME_HTML" | grep -q 'name="robots"' && echo あり || echo なし)" 'なし'
+ok '入力不正の予報画面は noindex' "$(has_noindex "$(curl -s "$BASE/forecast?lat=N27&lon=")")" 'あり'
+ok '外部送信の案内は noindex' "$(has_noindex "$(curl -s "$BASE/external-transmission")")" 'あり'
+ok '404 の画面は noindex' "$(has_noindex "$(curl -s "$BASE/nope")")" 'あり'
+
 # asset-map:compile 済みでないと、prod では /assets/ 配下が 404 になり画面が崩れる
 CSS_PATH="$(printf '%s' "$HOME_HTML" | grep -oE '/assets/[^"]+\.css' | head -1 || true)"
 ok 'CSS が読み込まれる' \
@@ -300,7 +309,8 @@ VHOST_CHECK="$(docker run --rm -v "$PWD/deploy/nginx/umiyomi.conf:/tmp/vhost.con
 
 contains '構文が正しい' "$VHOST_CHECK" 'syntax is ok'
 
-# vhost を本当に通して、検索エンジンに載せないヘッダーが付くか確かめる。
+# vhost を本当に通して、アプリの画面に X-Robots-Tag を付けず（登録の判断はアプリの meta robots に任せる）、
+# certbot のチャレンジのパスにだけ noindex が付くか確かめる（007）。
 # proxy_pass の先（ホストの 127.0.0.1:8003）を compose のネットワーク上の app に差し替えて動かす
 docker rm -f "$VHOST_CONTAINER" >/dev/null 2>&1 || true
 docker run -d --name "$VHOST_CONTAINER" --network "${PROJECT}_default" -p "127.0.0.1:${VHOST_PORT}:80" \
@@ -314,10 +324,11 @@ done
 
 VIA_VHOST="$(curl -s -o /dev/null -D - -H "Host: ${HOST}" "http://127.0.0.1:${VHOST_PORT}/")"
 contains 'vhost 経由でトップが返る' "$VIA_VHOST" ' 200'
-contains '検索エンジンに載せない (X-Robots-Tag)' "$VIA_VHOST" 'X-Robots-Tag: noindex, nofollow'
-# エラーページにも付くこと（always が無いと 2xx/3xx 以外では付かない）
-contains '404 にも付く' \
-    "$(curl -s -o /dev/null -D - -H "Host: ${HOST}" "http://127.0.0.1:${VHOST_PORT}/nope")" 'X-Robots-Tag: noindex, nofollow'
+ok 'トップに X-Robots-Tag が付かない' \
+   "$(printf '%s' "$VIA_VHOST" | grep -qi 'X-Robots-Tag' && echo あり || echo なし)" 'なし'
+# チャレンジのファイルは置いていないので 404。always があればエラーの応答にも付く
+contains 'certbot のチャレンジのパスは noindex' \
+    "$(curl -s -o /dev/null -D - -H "Host: ${HOST}" "http://127.0.0.1:${VHOST_PORT}/.well-known/acme-challenge/verify")" 'X-Robots-Tag: noindex'
 
 # ---------------------------------------------------------------------------
 

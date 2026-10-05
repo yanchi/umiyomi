@@ -82,6 +82,18 @@ ShipInfoV2 の `deploy/README.md`（2026-10-03 時点）より。足すときは
 2. `sudo nginx -t && sudo systemctl reload nginx`
 3. `scripts/verify-prod.sh` の X-Robots-Tag の確認を外す
 
+## フィードバックのフォームを設定する
+
+フォームを設定するまで、フッターにフィードバックのリンクは出ない（未設定のままデプロイしてよい）。
+案内画面の「緊急通報は 118 番」などの案内（US2）を含む版がデプロイされてから設定すること。
+
+1. 運営者が外部フォームを [`specs/004-feedback-channel/contracts/web-ui.md`](../specs/004-feedback-channel/contracts/web-ui.md)「外部フォーム側の設定」のとおりに用意する。
+   種類（不具合・要望・予報の値についての気づき・その他）を必須、本文を必須、返信用の連絡先を任意、表示中の情報の欄を任意にする。
+   ログイン・アカウントなしで送れ、回答者のメールアドレスを収集しない設定にする
+2. VPS の `/opt/umiyomi/.env.production` に `FEEDBACK_FORM_URL` と `FEEDBACK_FORM_PREFILL_FIELD` を追記し、`docker compose -f compose.prod.yml --env-file .env.production up -d` で反映する
+
+欄の名前の調べ方と確認手順は [`specs/004-feedback-channel/quickstart.md`](../specs/004-feedback-channel/quickstart.md)「本番への設定」を参照。
+
 ## ロールバック
 
 デプロイは失敗しても自動では元に戻らない。「起動を確認」のステップが失敗した時点で、前のコンテナはすでに新しいイメージに置き換わっている。デプロイが失敗したら、ログで原因を確かめたうえで、次の手順で直前に動いていたコミットの SHA に戻す。

@@ -479,3 +479,70 @@ body {
     flex-wrap: wrap;
     gap: 0.5rem;
 }
+
+/* フィードバック。フッターのリンクは指で押せる高さにし、Open-Meteo の表記とは行を分ける */
+.site-footer__feedback {
+    display: block;
+    width: fit-content;
+    padding: 0.75rem 0;
+    min-height: 44px;
+    box-sizing: border-box;
+}
+
+.feedback-open {
+    display: inline-block;
+    box-sizing: border-box;
+    max-width: 100%;
+    min-height: 44px;
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    color: #fff;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+    background: var(--color-accent);
+    border-radius: 0.375rem;
+}
+
+.feedback-back {
+    display: inline-block;
+    padding: 0.75rem 0;
+    min-height: 44px;
+    box-sizing: border-box;
+}
+
+.feedback-notes {
+    margin: 1rem 0;
+    padding: 0.75rem 1rem;
+    background: var(--color-warning-bg);
+    border: 1px solid var(--color-warning-border);
+    border-radius: 0.375rem;
+    overflow-wrap: anywhere;
+}
+
+.feedback-notes h2 {
+    margin: 0 0 0.5rem;
+    font-size: 1rem;
+}
+
+.feedback-notes ul {
+    margin: 0;
+    padding-left: 1.25rem;
+}
+
+.feedback-prefill {
+    overflow-wrap: anywhere;
+}
+
+.feedback-quote-title {
+    margin: 0.75rem 0 0.25rem;
+    font-size: 0.875rem;
+}
+
+/* 利用者が入力した文字列を UMIYOMI の案内文と見分けられるよう、左の罫線で引用として示す。100 文字の連続した文字列でも 360px ではみ出さない */
+.feedback-quote {
+    margin: 0;
+    padding: 0.25rem 0.75rem;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+    border-left: 4px solid var(--color-border-strong);
+}

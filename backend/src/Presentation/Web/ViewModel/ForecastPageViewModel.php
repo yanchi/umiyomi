@@ -14,11 +14,12 @@ namespace App\Presentation\Web\ViewModel;
 final readonly class ForecastPageViewModel
 {
     /**
-     * @param Form                $form
-     * @param Notice|null         $notice
-     * @param list<string>        $groupMessages
-     * @param FavoriteTarget|null $favoriteTarget お気に入りに保存できる表示中の地点（丸め済み）。入力エラーのときは null
-     * @param string|null         $inputNotice    1 行の「緯度, 経度」から読み取り、もう一方の欄の値を使わなかったときの通知（FR-004）
+     * @param Form                  $form
+     * @param Notice|null           $notice
+     * @param list<string>          $groupMessages
+     * @param FavoriteTarget|null   $favoriteTarget お気に入りに保存できる表示中の地点（丸め済み）。入力エラーのときは null
+     * @param array<string, string> $feedbackQuery  フッターのフィードバックのリンクに付ける Query
+     * @param string|null           $inputNotice    1 行の「緯度, 経度」から読み取り、もう一方の欄の値を使わなかったときの通知（FR-004）
      */
     public function __construct(
         public array $form,
@@ -29,6 +30,7 @@ final readonly class ForecastPageViewModel
         public ?ForecastTable $table,
         public ?array $favoriteTarget,
         public ?string $inputNotice = null,
+        public array $feedbackQuery = [],
     ) {
     }
 }

@@ -1,5 +1,8 @@
 {% extends 'base.html.twig' %}
 
+{# 親テンプレートのフッターのリンクに、表示中の地点を渡すため #}
+{% set feedback_query = page.feedbackQuery %}
+
 {% block title %}{{ page.location ?? '予報' }} | UMIYOMI{% endblock %}
 
 {% block body %}

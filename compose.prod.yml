@@ -33,6 +33,10 @@ services:
       # ホストの nginx が右端に付けた本当の接続元が使われる。
       # Symfony の PRIVATE_SUBNETS は使わない。6to4・Teredo など公開側から来うる範囲まで含むため
       TRUSTED_PROXIES: 127.0.0.1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
+      # フィードバックの外部フォーム。:? にしないのは、フォームの用意とデプロイを切り離すため。
+      # 未設定ならフッターにリンクを出さないので、用意する前にデプロイしても導線は出ない
+      FEEDBACK_FORM_URL: ${FEEDBACK_FORM_URL:-}
+      FEEDBACK_FORM_PREFILL_FIELD: ${FEEDBACK_FORM_PREFILL_FIELD:-}
     volumes:
       # 予報のキャッシュと取得回数制限のカウンター（var/share/pools）。
       # ボリュームにしないと、デプロイのたびに消えて取得失敗時の代替表示ができなくなる

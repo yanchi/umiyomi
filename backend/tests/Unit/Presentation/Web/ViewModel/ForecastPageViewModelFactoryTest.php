@@ -11,6 +11,7 @@ use App\Application\Marine\DTO\MarineForecastView;
 use App\Presentation\Web\Input\CoordinateNotationParser;
 use App\Presentation\Web\Input\CoordinateQuery;
 use App\Presentation\Web\Input\CoordinateQueryParser;
+use App\Presentation\Web\Input\FeedbackContextParser;
 use App\Presentation\Web\ViewModel\ForecastPageViewModelFactory;
 use App\Presentation\Web\ViewModel\ForecastTable;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -233,6 +234,54 @@ final class ForecastPageViewModelFactoryTest extends TestCase
         $viewModel = $this->factory->create($this->query, $result);
 
         self::assertSame(['latitude' => $latitude, 'longitude' => $longitude, 'label' => $label], $viewModel->favoriteTarget);
+    }
+
+    /**
+     * @return iterable<string, array{MarineForecastResult, array<string, string>}>
+     */
+    public static function feedbackQueryProvider(): iterable
+    {
+        $forecast = static fn (float $latitude, float $longitude): MarineForecastView => new MarineForecastView(
+            $latitude,
+            $longitude,
+            new \DateTimeImmutable('2026-10-05T20:15:00+09:00'),
+            new \DateTimeImmutable('2026-10-05T21:15:00+09:00'),
+            GroupAvailability::Available,
+            GroupAvailability::Available,
+            [],
+        );
+
+        // updated は「最終更新：」の表示と同じ日時。取得失敗・回数制限は予報がないので付けない
+        yield 'fresh' => [MarineForecastResult::fresh($forecast(27.75, 129.05)), ['lat' => '27.75', 'lon' => '129.05', 'updated' => '2026/10/05 20:15']];
+        yield 'stale' => [MarineForecastResult::stale($forecast(27.75, 129.05)), ['lat' => '27.75', 'lon' => '129.05', 'updated' => '2026/10/05 20:15']];
+        yield 'unavailable' => [MarineForecastResult::unavailable(27.75, 129.05), ['lat' => '27.75', 'lon' => '129.05']];
+        yield 'rate limited' => [MarineForecastResult::rateLimited(28.1, 129.3), ['lat' => '28.10', 'lon' => '129.30']];
+        yield 'negative zero' => [MarineForecastResult::unavailable(-0.0, 129.05), ['lat' => '0.00', 'lon' => '129.05']];
+    }
+
+    /**
+     * @param array<string, string> $expected
+     */
+    #[DataProvider('feedbackQueryProvider')]
+    public function testFeedbackQuery(MarineForecastResult $result, array $expected): void
+    {
+        self::assertSame($expected, $this->factory->create($this->query, $result)->feedbackQuery);
+    }
+
+    public function testInvalidInputFeedbackQueryHasRawInputs(): void
+    {
+        $query = new CoordinateQueryParser(new CoordinateNotationParser())->parse('95', 'abc');
+
+        self::assertSame(['input_lat' => '95', 'input_lon' => 'abc'], $this->factory->createForInvalidInput($query)->feedbackQuery);
+    }
+
+    public function testInvalidInputFeedbackQueryIsTruncated(): void
+    {
+        $query = new CoordinateQueryParser(new CoordinateNotationParser())->parse(str_repeat('あ', 101), 'abc');
+
+        $feedbackQuery = $this->factory->createForInvalidInput($query)->feedbackQuery;
+
+        self::assertSame(FeedbackContextParser::MAX_INPUT_LENGTH, mb_strlen($feedbackQuery['input_lat']));
     }
 
     /**

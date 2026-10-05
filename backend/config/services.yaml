@@ -22,6 +22,11 @@ services:
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
 
+    App\Presentation\Web\Feedback\FeedbackFormLink:
+        arguments:
+            $formUrl: '%env(FEEDBACK_FORM_URL)%'
+            $prefillField: '%env(FEEDBACK_FORM_PREFILL_FIELD)%'
+
 when@test:
     services:
         _defaults:

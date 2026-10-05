@@ -29,6 +29,8 @@ final class CoordinateNotationParserTest extends TestCase
         yield 'full-width digits and period' => ['２７．７５', 2775];
         yield 'full-width spaces' => ["\u{3000}27.75\u{3000}", 2775];
         yield 'tabs' => ["\t27.75\t", 2775];
+        yield 'no-break space' => ["27.75\u{00A0}", 2775];
+        yield 'narrow no-break space' => ["\u{202F}27.75\u{202F}", 2775];
         yield 'full-width minus' => ['－27.75', -2775];
         yield 'minus sign U+2212' => ['−27.75', -2775];
         yield 'full-width plus' => ['＋27.75', 2775];
@@ -199,6 +201,7 @@ final class CoordinateNotationParserTest extends TestCase
         yield 'longitude first' => ['129.05E 27.75N', 12905, Axis::Longitude, 2775, Axis::Latitude];
         yield 'prefix directions with spaces' => ['N 27.75 E 129.05', 2775, Axis::Latitude, 12905, Axis::Longitude];
         yield 'negative' => ['-33.86, 151.21', -3386, null, 15121, null];
+        yield 'integers with a comma and a space' => ['35, 139', 3500, null, 13900, null];
         yield 'both within latitude range' => ['35.00, 45.00', 3500, null, 4500, null];
     }
 
@@ -226,6 +229,8 @@ final class CoordinateNotationParserTest extends TestCase
         yield 'direction on the first only (suffix)' => ['27.75N, 129.05', NotationError::PairDirectionMixed];
         yield 'both latitude' => ['27N 129N', NotationError::PairSameAxis];
         yield 'both longitude' => ['27.75E 129.05W', NotationError::PairSameAxis];
+        yield 'two integers with a space' => ['27 45', NotationError::UnitlessDegreeMinutes];
+        yield 'decimal comma' => ['27,75', NotationError::DecimalComma];
         yield 'second value unreadable' => ['27.75, abc', NotationError::Unreadable];
         yield 'conflicting directions in the pair' => ['N27.75S, E129.05', NotationError::Unreadable];
     }

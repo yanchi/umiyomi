@@ -203,6 +203,7 @@ final readonly class CoordinateQueryParser
             NotationError::OutOfRange => \sprintf('%sは %s の範囲で入力してください', self::label($subject), Axis::Latitude === $subject ? '-90〜90' : '-180〜180'),
             NotationError::TooManyValues => '緯度と経度の 2 つだけを入力してください。'.self::EXAMPLES,
             NotationError::UnitlessDegreeMinutes => '度分で入力するときは、度と分の記号を付けてください（例：27°45.0\' 129°03.0\'）',
+            NotationError::DecimalComma => '小数点にはカンマではなくピリオドを使ってください（例：27.75）。「緯度, 経度」は、カンマのあとに空白を入れてください',
             NotationError::PairDirectionMixed => '緯度と経度の両方に方角の文字を付けるか、両方とも付けずに入力してください',
             NotationError::PairSameAxis => '緯度（N・S）と経度（E・W）を 1 つずつ入力してください',
             NotationError::SwappedOrder => '緯度と経度の順序が逆になっている可能性があります。「緯度, 経度」の順で入力してください（例：27.75, 129.05）',

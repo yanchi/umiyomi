@@ -53,7 +53,8 @@ pair = angle ␣* "," ␣* angle
 | 規則 | 違反したとき |
 |---|---|
 | 値が 3 つ以上（例：`27.75, 129.05, 10`） | `too_many_values` |
-| 単位の記号のない数字が 3〜4 個並ぶ（例：`27 45.0 129 03.0`） | `unitless_degree_minutes`（記号を付けるよう案内） |
+| 単位の記号のない数字が 3〜4 個並ぶ（例：`27 45.0 129 03.0`）。または、方角の文字・小数点・記号のない整数 2 つが空白だけで区切られている（例：`27 45`。度分の書き間違いと区別できない） | `unitless_degree_minutes`（記号を付けるよう案内） |
+| 方角の文字・小数点・記号のない整数 2 つが、空白なしのカンマで区切られている（例：`27,75`。小数点のカンマの書き間違いと区別できない。`35, 139` のようにカンマのあとに空白があれば受け付ける） | `decimal_comma` |
 | 片方の値にだけ方角の文字がある（例：`N27 45.0`） | `pair_direction_mixed` |
 | 両方の方角が同じ軸（例：`27N 129N`） | `pair_same_axis` |
 | 方角の文字がなく、先頭が緯度の範囲外で、入れ替えると両方とも範囲内（例：`129.05, 27.75`） | `swapped_order`（入れ替えない。FR-022） |
@@ -129,7 +130,7 @@ public function toCanonicalString(): string  // sprintf('%.2f')、-0.00 は 0.00
 ### `NotationError`（新規、enum）
 
 `Empty` / `TooLong` / `Unreadable` / `Url` / `ConflictingDirections` / `SignAndDirection` / `DegreeNotInteger` / `MinuteSecondRange` /
-`AxisMismatch` / `OutOfRange` / `TooManyValues` / `UnitlessDegreeMinutes` / `PairDirectionMixed` / `PairSameAxis` / `SwappedOrder` / `BothPairs`
+`AxisMismatch` / `OutOfRange` / `TooManyValues` / `UnitlessDegreeMinutes` / `DecimalComma` / `PairDirectionMixed` / `PairSameAxis` / `SwappedOrder` / `BothPairs`
 
 文言への変換は `CoordinateQueryParser` が行う（欄の名前「緯度」「経度」を埋め込むため）。文言は [contracts/web-ui.md](contracts/web-ui.md)。
 

@@ -410,6 +410,8 @@ final class CoordinateQueryParserTest extends TestCase
     public static function pairErrorMessageProvider(): iterable
     {
         yield 'unitless degree minutes' => ['27 45.0 129 03.0', '度分で入力するときは、度と分の記号を付けてください（例：27°45.0\' 129°03.0\'）'];
+        yield 'two integers with a space' => ['27 45', '度分で入力するときは、度と分の記号を付けてください（例：27°45.0\' 129°03.0\'）'];
+        yield 'decimal comma' => ['27,75', '小数点にはカンマではなくピリオドを使ってください（例：27.75）。「緯度, 経度」は、カンマのあとに空白を入れてください'];
         yield 'direction on one value' => ['N27 45.0', '緯度と経度の両方に方角の文字を付けるか、両方とも付けずに入力してください'];
         yield 'same axis' => ['27N 129N', '緯度（N・S）と経度（E・W）を 1 つずつ入力してください'];
         yield 'too many values' => ['27.75, 129.05, 10', '緯度と経度の 2 つだけを入力してください。'.self::EXAMPLES];
@@ -423,6 +425,25 @@ final class CoordinateQueryParserTest extends TestCase
 
         self::assertFalse($query->isValid());
         self::assertSame(['latitude' => $message], $query->errors);
+    }
+
+    public function testIntegersWithoutSymbolsDoNotHideTheOtherField(): void
+    {
+        // 別の地点の予報を黙って表示しない。経度欄の値も使われないまま通ってしまわないこと
+        $query = $this->parser->parse('27 45', '129.05');
+
+        self::assertFalse($query->isValid());
+        self::assertArrayHasKey('latitude', $query->errors);
+        self::assertArrayNotHasKey('longitude', $query->errors);
+    }
+
+    public function testNoBreakSpaceFromCopyAndPasteIsAccepted(): void
+    {
+        $query = $this->parser->parse("27.75\u{00A0}", "129.05\u{00A0}");
+
+        self::assertTrue($query->isValid());
+        self::assertSame('27.75', $query->canonicalLatitude);
+        self::assertTrue($query->needsRedirect());
     }
 
     public function testTooLongMessageNamesTheField(): void

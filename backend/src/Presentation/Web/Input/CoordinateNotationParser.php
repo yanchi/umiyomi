@@ -28,7 +28,7 @@ final readonly class CoordinateNotationParser
         '－' => '-', '−' => '-', '‐' => '-', '‑' => '-', '–' => '-',
         '＋' => '+',
         '（' => '(', '）' => ')',
-        "\u{3000}" => ' ', "\t" => ' ', "\n" => ' ', "\r" => ' ',
+        "\t" => ' ', "\n" => ' ', "\r" => ' ',
         '˚' => '°', 'º' => '°', '度' => '°', 'd' => '°', 'D' => '°',
         '′' => "'", '’' => "'", '‘' => "'", '＇' => "'", '分' => "'",
         '″' => '"', '”' => '"', '“' => '"', '＂' => '"', '秒' => '"',
@@ -71,7 +71,9 @@ final readonly class CoordinateNotationParser
 
     private function normalize(string $raw): string
     {
-        $text = trim(strtr($raw, self::NORMALIZATION), ' ');
+        // 全角空白・ノーブレークスペースなど、コピー元で混ざる空白をまとめて ASCII の空白にする。trim は ASCII の空白しか除かないため
+        $spaced = preg_replace('/\p{Zs}/u', ' ', $raw) ?? $raw;
+        $text = trim(strtr($spaced, self::NORMALIZATION), ' ');
         // 地図アプリの出力に括弧で囲まれたものがあるため、全体を囲む 1 組だけ外す
         if (str_starts_with($text, '(') && str_ends_with($text, ')')) {
             $text = trim(substr($text, 1, -1), ' ');
@@ -110,6 +112,14 @@ final readonly class CoordinateNotationParser
         );
         if (1 !== preg_match($pattern, $text, $match, PREG_UNMATCHED_AS_NULL)) {
             return null;
+        }
+
+        // 記号も小数点もない整数 2 つは、度分や小数点のカンマの書き間違いと区別できない。別の地点を黙って表示しないよう受け付けない
+        if (1 === preg_match('/^[+-]?[0-9]+ +[+-]?[0-9]+$/', $text)) {
+            return ParsedField::invalid(NotationError::UnitlessDegreeMinutes, true);
+        }
+        if (1 === preg_match('/^[+-]?[0-9]+,[+-]?[0-9]+$/', $text)) {
+            return ParsedField::invalid(NotationError::DecimalComma, true);
         }
 
         $first = $this->buildAngle($match, 'a_');

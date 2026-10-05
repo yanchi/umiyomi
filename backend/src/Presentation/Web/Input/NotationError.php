@@ -21,6 +21,7 @@ enum NotationError
     case OutOfRange;
     case TooManyValues;
     case UnitlessDegreeMinutes;
+    case DecimalComma;
     case PairDirectionMixed;
     case PairSameAxis;
     case SwappedOrder;

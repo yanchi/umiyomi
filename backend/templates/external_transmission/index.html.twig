@@ -1,0 +1,73 @@
+{% extends 'base.html.twig' %}
+
+{% set analytics_page = {screen: 'external_transmission', path: path('app_external_transmission')} %}
+
+{% block title %}外部送信について | UMIYOMI{% endblock %}
+
+{% block meta_description %}UMIYOMI が利用しているアクセス解析と、送信している情報・利用目的・計測を止める方法の案内です。{% endblock %}
+
+{# この画面自身へのリンクになるため出さない #}
+{% block footer_external_transmission %}{% endblock %}
+
+{% block body %}
+    <header class="page-header">
+        <p class="site-title"><a href="{{ path('app_home') }}">UMIYOMI</a></p>
+    </header>
+    <h1 class="transmission-title">外部送信について</h1>
+    <p class="lead">UMIYOMI は、サービスの利用状況を把握して改善に役立てるため、アクセス解析サービスを利用し、閲覧中のブラウザから次の情報を送信しています。</p>
+
+    <section class="transmission-section" aria-labelledby="transmission-destination">
+        <h2 id="transmission-destination">送信先</h2>
+        <p>Google LLC（Google アナリティクス）</p>
+    </section>
+
+    <section class="transmission-section" aria-labelledby="transmission-data">
+        <h2 id="transmission-data">送信される情報</h2>
+        <ul>
+            <li>閲覧した画面の種類とアドレス（予報画面では、表示した地点の緯度・経度を含みます）</li>
+            <li>お気に入りの保存・削除、現在地ボタン、フィードバックのフォームを開く操作の回数（お気に入りの地点・名前、取得した現在地は送信しません）</li>
+            <li>直前に見ていたページのアドレス（UMIYOMI 内のページはクエリを除きます）</li>
+            <li>端末・ブラウザの種類、画面の大きさ、言語、おおよその地域</li>
+            <li>Cookie に保存される、ブラウザを識別するための ID</li>
+        </ul>
+        <p>緯度・経度の入力欄に入力した文字列、フィードバックのフォームに入る内容は送信しません。</p>
+    </section>
+
+    <section class="transmission-section" aria-labelledby="transmission-purpose">
+        <h2 id="transmission-purpose">利用目的</h2>
+        <p>閲覧数・利用者数の把握、よく使われる機能・よく見られる海域の把握、不具合の発見など、サービスの改善のため。広告の配信には利用しません。</p>
+    </section>
+
+    <section class="transmission-section" aria-labelledby="transmission-handling">
+        <h2 id="transmission-handling">Google によるデータの取り扱い</h2>
+        <ul>
+            <li><a href="https://policies.google.com/privacy?hl=ja" rel="noopener">Google のプライバシーポリシー</a></li>
+            <li><a href="https://policies.google.com/technologies/partner-sites?hl=ja" rel="noopener">Google のサービスを使用するサイトやアプリから収集した情報の Google による使用</a></li>
+        </ul>
+    </section>
+
+    <section class="transmission-section" aria-labelledby="transmission-stop">
+        <h2 id="transmission-stop">計測を止める方法</h2>
+        {% if analytics.enabled %}
+            {# JavaScript が状態に応じて出す。JavaScript が無効なら出ないまま（hidden） #}
+            <section class="analytics-optout" data-analytics-optout hidden aria-labelledby="analytics-optout-title">
+                <h3 id="analytics-optout-title">このブラウザでの計測</h3>
+                <p data-analytics-optout-state="measuring" hidden>現在：このブラウザでは計測しています</p>
+                <p data-analytics-optout-state="stopped" hidden>現在：このブラウザでは計測していません</p>
+                <p data-analytics-optout-state="unavailable" hidden>このブラウザでは切り替えを保存できません。上記のアドオンをご利用ください。</p>
+                <p role="status" data-analytics-optout-message="stopped" hidden>このブラウザでは計測しないように設定しました。</p>
+                <p role="status" data-analytics-optout-message="resumed" hidden>計測を再開しました。次に開いた画面から計測されます。</p>
+                <button type="button" data-analytics-optout-action="stop" hidden>このブラウザでは計測しない</button>
+                <button type="button" data-analytics-optout-action="resume" hidden>計測を再開する</button>
+                <p>切り替えはこのブラウザだけに保存され、サーバーには送信しません。</p>
+            </section>
+        {% else %}
+            <p>この環境では現在、アクセス解析による計測を行っていません。</p>
+        {% endif %}
+        <p>Google が提供する「<a href="https://tools.google.com/dlpage/gaoptout?hl=ja" rel="noopener">Google アナリティクス オプトアウト アドオン</a>」を使うと、UMIYOMI を含むすべてのサイトで Google アナリティクスによる計測を止められます。</p>
+    </section>
+
+    <p>
+        <a class="transmission-back" href="{{ path('app_home') }}">← トップへ戻る</a>
+    </p>
+{% endblock %}

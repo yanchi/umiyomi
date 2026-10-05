@@ -27,14 +27,36 @@ services:
       timeout: 3s
       retries: 30
 
+  # 既定の app-e2e は計測しない（FR-006）。計測の挙動を確かめるテストだけがこちらを使う。
+  # Google への通信は Playwright で全てスタブ・遮断するので、外へは出ない
+  app-e2e-analytics:
+    profiles: [e2e]
+    build: ./backend
+    environment:
+      APP_ENV: test
+      APP_DEBUG: "1"
+      GA_MEASUREMENT_ID: G-E2ETEST000
+    volumes:
+      - ./backend:/app
+      - caddy_data:/data
+      - caddy_config:/config
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost/"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
   e2e:
     profiles: [e2e]
     build: ./e2e
     depends_on:
       app-e2e:
         condition: service_healthy
+      app-e2e-analytics:
+        condition: service_healthy
     environment:
       E2E_BASE_URL: http://app-e2e
+      E2E_ANALYTICS_BASE_URL: http://app-e2e-analytics
     volumes:
       - ./e2e/tests:/e2e/tests
       - ./e2e/playwright.config.js:/e2e/playwright.config.js

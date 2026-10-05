@@ -1,5 +1,7 @@
 {% extends 'base.html.twig' %}
 
+{% set analytics_page = {screen: 'home', path: path('app_home')} %}
+
 {% block title %}UMIYOMI｜風・波・うねりの予報を出航前に確認{% endblock %}
 
 {# トップだけ検索エンジンへの登録を許可するため meta を出さない。本番の nginx の X-Robots-Tag が残る間は、それが優先されて登録されない #}

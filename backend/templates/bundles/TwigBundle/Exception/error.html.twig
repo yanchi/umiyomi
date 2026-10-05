@@ -1,5 +1,8 @@
 {% extends 'base.html.twig' %}
 
+{# アドレスは固定値にする。404 のパスは利用者が自由に付けられ、入力した文字列を外部へ送らないため（画面の種類は screen で区別できる） #}
+{% set analytics_page = {screen: 'error', path: '/error'} %}
+
 {# 例外メッセージや入力は共有用情報にも画面にも出さない #}
 {% block title %}エラー | UMIYOMI{% endblock %}
 

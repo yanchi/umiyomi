@@ -21,6 +21,10 @@
         <meta property="og:image:height" content="630">
         <meta property="og:image:alt" content="UMIYOMI のロゴ。風・波・うねりの予報を出航前に確認するサービス">
         <meta name="twitter:card" content="summary_large_image">
+        {# テンプレートが analytics_page を決めた画面だけ出す。新しい画面で、入力文字列入りのアドレスを既定で送らないため #}
+        {% if analytics.enabled and analytics_page is defined %}
+        <meta name="umiyomi-analytics" data-measurement-id="{{ analytics.measurementId }}" data-screen="{{ analytics_page.screen }}" data-path="{{ analytics_page.path }}">
+        {% endif %}
         {% block head_meta %}{% endblock %}
         {% block stylesheets %}
         {% endblock %}
@@ -42,6 +46,8 @@
         </main>
         <footer class="site-footer">
             {% block footer_feedback %}{% if feedback_form.available %}<a class="site-footer__feedback" href="{{ path('app_feedback', feedback_query|default({})) }}">フィードバック</a>{% endif %}{% endblock %}
+            {# 計測の設定の有無に関わらず出す。外部送信の案内には、全画面からたどり着けなければならないため #}
+            {% block footer_external_transmission %}<a class="site-footer__external-transmission" href="{{ path('app_external_transmission') }}">外部送信について</a>{% endblock %}
             <a href="https://open-meteo.com/">Weather data by Open-Meteo.com</a>
         </footer>
     </body>

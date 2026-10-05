@@ -1,5 +1,6 @@
 // 緯度・経度の入力欄まわりの DOM 操作。規則は position-format.js・location-request.js に任せ、ここは表示とイベントだけを持つ。
 // 入力欄の文字列を座標として読まない（読み取りはサーバーだけ。FR-014）。文言は Twig に置き、ここでは hidden を切り替えるだけにする。
+import { track } from '../analytics/analytics.js';
 import { createLocationRequester } from './location-request.js';
 
 const showMessage = (region, name) => {
@@ -38,6 +39,8 @@ const initCurrentLocation = (form, fields, onFilled) => {
         }
 
         button.disabled = false;
+        // 取得した緯度・経度は渡さない。成功か失敗かだけを数える
+        track('current_location', { result: result.status === 'ok' ? 'success' : 'failure' });
         if (result.status === 'ok') {
             const unchanged = fields.latitude.value === before[0] && fields.longitude.value === before[1];
             if (unchanged) {

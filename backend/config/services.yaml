@@ -27,6 +27,10 @@ services:
             $formUrl: '%env(FEEDBACK_FORM_URL)%'
             $prefillField: '%env(FEEDBACK_FORM_PREFILL_FIELD)%'
 
+    App\Presentation\Web\Analytics\AnalyticsTag:
+        arguments:
+            $measurementId: '%env(GA_MEASUREMENT_ID)%'
+
 when@test:
     services:
         _defaults:

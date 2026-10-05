@@ -169,6 +169,17 @@ ok '存在しないページは 404' "$(http_code "$BASE/nope")" '404'
 ok 'フォーム未設定ではフッターにフィードバックのリンクがない' \
    "$(printf '%s' "$HOME_HTML" | grep -q 'site-footer__feedback' && echo あり || echo なし)" 'なし'
 ok 'フォーム未設定では /feedback が 404' "$(http_code "$BASE/feedback")" '404'
+# 計測 ID なしで起動しているので、計測の設定を出さない（006）
+ok '計測 ID 未設定では計測の設定を出さない' \
+   "$(printf '%s' "$HOME_HTML" | grep -q 'umiyomi-analytics' && echo あり || echo なし)" 'なし'
+ok '計測 ID 未設定では入力不正の画面にも計測の設定を出さない' \
+   "$(curl -s "$BASE/forecast?lat=N27&lon=" | grep -q 'umiyomi-analytics' && echo あり || echo なし)" 'なし'
+# 外部送信の案内（006）。計測 ID なしでも全画面から開ける
+ok '外部送信の案内 /external-transmission' "$(http_code "$BASE/external-transmission")" '200'
+ok '計測 ID 未設定では案内画面に計測しない旨を出す' \
+   "$(curl -s "$BASE/external-transmission" | grep -q 'この環境では現在、アクセス解析による計測を行っていません。' && echo あり || echo なし)" 'あり'
+ok 'トップのフッターに外部送信の案内へのリンクがある' \
+   "$(printf '%s' "$HOME_HTML" | grep -q 'site-footer__external-transmission' && echo あり || echo なし)" 'あり'
 ok '.env は配信しない' \
    "$([ "$(http_code "$BASE/.env")" != '200' ] && echo 配信しない || echo 配信される)" '配信しない'
 ok 'プロファイラが無い' "$(http_code "$BASE/_profiler")" '404'
@@ -185,6 +196,11 @@ ok 'JS が読み込まれる' \
 INPUT_JS_PATH="$(printf '%s' "$HOME_HTML" | grep -oE '/assets/coordinate-input/coordinate-input-ui-[^"]+\.js' | head -1 || true)"
 ok '入力補助の JS が読み込まれる' \
    "$([ -n "$INPUT_JS_PATH" ] && http_code "$BASE$INPUT_JS_PATH" || echo 'importmap になし')" '200'
+
+# アクセス解析（006）。同じく compile 済みでないと、計測が prod でだけ動かない
+ANALYTICS_JS_PATH="$(printf '%s' "$HOME_HTML" | grep -oE '/assets/analytics/analytics-[^"]+\.js' | head -1 || true)"
+ok '計測の JS が読み込まれる' \
+   "$([ -n "$ANALYTICS_JS_PATH" ] && http_code "$BASE$ANALYTICS_JS_PATH" || echo 'importmap になし')" '200'
 
 # アイコンと共有用画像（005）。ハッシュ付きの URL が compile 済みで返らないと、タブのアイコンと共有プレビューが prod でだけ壊れる
 head_content_type() { curl -s -o /dev/null -D - "$1" | tr -d '\r' | awk -F': ' 'tolower($1) == "content-type" { print $2 }'; }

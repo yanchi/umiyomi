@@ -481,7 +481,8 @@ body {
 }
 
 /* フィードバック。フッターのリンクは指で押せる高さにし、Open-Meteo の表記とは行を分ける */
-.site-footer__feedback {
+.site-footer__feedback,
+.site-footer__external-transmission {
     display: block;
     width: fit-content;
     padding: 0.75rem 0;
@@ -545,4 +546,55 @@ body {
     overflow-wrap: anywhere;
     white-space: pre-wrap;
     border-left: 4px solid var(--color-border-strong);
+}
+
+/* 外部送信の案内。リンクが長くても 360px でページ全体を横にはみ出させない */
+.transmission-section {
+    margin: 1.25rem 0;
+    overflow-wrap: anywhere;
+}
+
+.transmission-section h2 {
+    margin: 0 0 0.5rem;
+    font-size: 1.125rem;
+}
+
+.transmission-section ul {
+    margin: 0 0 0.5rem;
+    padding-left: 1.25rem;
+}
+
+.transmission-back {
+    display: inline-block;
+    padding: 0.75rem 0;
+    min-height: 44px;
+}
+
+.analytics-optout {
+    margin: 0.5rem 0 1rem;
+    padding: 0.75rem 1rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-strong);
+    border-radius: 0.375rem;
+}
+
+.analytics-optout h3 {
+    margin: 0 0 0.5rem;
+    font-size: 1rem;
+}
+
+.analytics-optout p {
+    margin: 0.5rem 0;
+}
+
+.analytics-optout button {
+    max-width: 100%;
+    min-height: 44px;
+    padding: 0.5rem 1rem;
+    font-size: 1rem;
+    color: var(--color-text);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-strong);
+    border-radius: 0.375rem;
+    cursor: pointer;
 }

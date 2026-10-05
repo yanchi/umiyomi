@@ -2,6 +2,7 @@
 
 {# 親テンプレートのフッターのリンクに、表示中の地点を渡すため #}
 {% set feedback_query = page.feedbackQuery %}
+{% set analytics_page = {screen: page.analyticsScreen, path: path('app_forecast', page.analyticsQuery)} %}
 
 {% block title %}{{ page.location ?? '予報' }} | UMIYOMI{% endblock %}
 

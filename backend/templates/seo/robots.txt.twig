@@ -1,0 +1,5 @@
+{# 予報画面を Disallow にするとクローラーが noindex を読めず、よそからリンクされるとアドレスだけが載るため、どの画面も禁止しない #}
+User-agent: *
+Disallow:
+
+Sitemap: {{ site_origin|trim('/', 'right') }}{{ path('app_sitemap') }}

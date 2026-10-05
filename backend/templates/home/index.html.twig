@@ -11,6 +11,9 @@
 {# トップだけ検索エンジンへの登録を許可するため meta を出さない #}
 {% block robots %}{% endblock %}
 
+{# リクエストのクエリを使わず、utm などのパラメーター付きで開いてもパラメーターなしのトップを指す #}
+{% block canonical %}<link rel="canonical" href="{{ site_origin|trim('/', 'right') }}{{ path('app_home') }}">{% endblock %}
+
 {% block body %}
     <header class="page-header">
         <h1 class="site-title"><a href="{{ path('app_home') }}">UMIYOMI</a> <span class="site-title__tagline">風・波・うねりの予報を出航前に確認</span></h1>

@@ -193,6 +193,16 @@ ok '入力不正の予報画面は noindex' "$(has_noindex "$(curl -s "$BASE/for
 ok '外部送信の案内は noindex' "$(has_noindex "$(curl -s "$BASE/external-transmission")")" 'あり'
 ok '404 の画面は noindex' "$(has_noindex "$(curl -s "$BASE/nope")")" 'あり'
 
+# 正規のアドレス・robots.txt・サイトマップは Host ヘッダーではなく DEFAULT_URI（検証用のドメイン）から作る
+head_content_type() { curl -s -o /dev/null -D - "$1" | tr -d '\r' | awk -F': ' 'tolower($1) == "content-type" { print $2 }'; }
+contains 'トップの canonical は DEFAULT_URI から' "$HOME_HTML" "<link rel=\"canonical\" href=\"https://${HOST}/\">"
+ok '/robots.txt' "$(http_code "$BASE/robots.txt")" '200'
+ok '/robots.txt の Content-Type' "$(head_content_type "$BASE/robots.txt")" 'text/plain; charset=UTF-8'
+contains '/robots.txt がサイトマップの場所を示す' "$(curl -s "$BASE/robots.txt")" "Sitemap: https://${HOST}/sitemap.xml"
+ok '/sitemap.xml' "$(http_code "$BASE/sitemap.xml")" '200'
+ok '/sitemap.xml の Content-Type' "$(head_content_type "$BASE/sitemap.xml")" 'application/xml; charset=UTF-8'
+contains '/sitemap.xml がトップを示す' "$(curl -s "$BASE/sitemap.xml")" "<loc>https://${HOST}/</loc>"
+
 # asset-map:compile 済みでないと、prod では /assets/ 配下が 404 になり画面が崩れる
 CSS_PATH="$(printf '%s' "$HOME_HTML" | grep -oE '/assets/[^"]+\.css' | head -1 || true)"
 ok 'CSS が読み込まれる' \
@@ -212,7 +222,6 @@ ok '計測の JS が読み込まれる' \
    "$([ -n "$ANALYTICS_JS_PATH" ] && http_code "$BASE$ANALYTICS_JS_PATH" || echo 'importmap になし')" '200'
 
 # アイコンと共有用画像（005）。ハッシュ付きの URL が compile 済みで返らないと、タブのアイコンと共有プレビューが prod でだけ壊れる
-head_content_type() { curl -s -o /dev/null -D - "$1" | tr -d '\r' | awk -F': ' 'tolower($1) == "content-type" { print $2 }'; }
 meta_content() { printf '%s' "$1" | grep -oE "<meta property=\"$2\" content=\"[^\"]+\"" | head -1 | sed -E 's/.*content="([^"]+)"/\1/' || true; }
 
 ICON_SVG_PATH="$(printf '%s' "$HOME_HTML" | grep -oE '/assets/images/icon-[^"]+\.svg' | head -1 || true)"

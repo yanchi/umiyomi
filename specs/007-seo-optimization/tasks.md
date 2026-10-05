@@ -111,7 +111,7 @@ Search Console・リッチリザルトテストでの確認（SC-001〜SC-004）
 
 > 先に書き、実装前に失敗することを確認する
 
-- [ ] T013 [US2] `backend/tests/Functional/SeoTest.php` を新規作成する（`HeadMetaTest` と同じく Fake Provider を使い、各リクエストで Provider の呼び出し回数を確かめる。テスト環境の `DEFAULT_URI` は `http://localhost`）：
+- [X] T013 [US2] `backend/tests/Functional/SeoTest.php` を新規作成する（`HeadMetaTest` と同じく Fake Provider を使い、各リクエストで Provider の呼び出し回数を確かめる。テスト環境の `DEFAULT_URI` は `http://localhost`）：
   - `GET /robots.txt`：200、`Content-Type` が `text/plain; charset=UTF-8`、`X-Robots-Tag` が `noindex`、本文が contracts のとおり `User-agent: *` / 空の `Disallow:` / `Sitemap: http://localhost/sitemap.xml` を含み、値を持つ `Disallow:` 行がない、Provider 呼び出し 0 回
   - `GET /sitemap.xml`：200、`Content-Type` が `application/xml; charset=UTF-8`、`X-Robots-Tag` が `noindex`、`simplexml_load_string` で読め、名前空間 `http://www.sitemaps.org/schemas/sitemap/0.9` の `url` が 1 件で `loc` が `http://localhost/`、`lastmod`・`changefreq`・`priority` を含まない、Provider 呼び出し 0 回
   - canonical（DataProvider）：`/` と `/?utm_source=x&lat=1` で `head link[rel="canonical"]` が 1 つで `href` が `http://localhost/`（クエリが混ざらない。US2-3）
@@ -121,17 +121,17 @@ Search Console・リッチリザルトテストでの確認（SC-001〜SC-004）
 
 ### Implementation for User Story 2
 
-- [ ] T014 [P] [US2] `backend/templates/seo/robots.txt.twig` を新規作成する。contracts「`/robots.txt`」の 4 行（`User-agent: *`、`Disallow:`、空行、`Sitemap: {{ site_origin|trim('/', 'right') }}{{ path('app_sitemap') }}`）だけを出す。Twig のコメントで「予報画面を Disallow にするとクローラーが noindex を読めず、アドレスだけが載るため、どの画面も禁止しない」旨を書く（research R2）。twig-cs-fixer で末尾の改行などが崩れないか確かめる
-- [ ] T015 [P] [US2] `backend/templates/seo/sitemap.xml.twig` を新規作成する。contracts「`/sitemap.xml`」の XML を出し、`<loc>` は `{{ site_origin|trim('/', 'right') }}{{ path('app_home') }}`。`lastmod` などを出さない理由（正確な更新日時を持たないため）を Twig のコメントで書く（research R3）
-- [ ] T016 [P] [US2] `backend/src/Presentation/Web/Controller/RobotsTxtController.php` を新規作成する。`HomeController` と同じ形の `final class RobotsTxtController extends AbstractController`、`#[Route('/robots.txt', name: 'app_robots_txt', methods: ['GET'])]`、`__invoke(): Response` で `seo/robots.txt.twig` を描画し、`Content-Type: text/plain; charset=UTF-8` と `X-Robots-Tag: noindex` を付けた Response を返す。クラスの PHPDoc に、`public/` の静的ファイルにせずルートにする理由（`DEFAULT_URI` から作り、環境ごとのアドレスにするため。research R1）と `X-Robots-Tag` を付ける理由（登録対象はトップだけ。research R9）を日本語で書く
-- [ ] T017 [P] [US2] `backend/src/Presentation/Web/Controller/SitemapController.php` を新規作成する。T016 と同じ形で `#[Route('/sitemap.xml', name: 'app_sitemap', methods: ['GET'])]`、`seo/sitemap.xml.twig` を描画し、`Content-Type: application/xml; charset=UTF-8` と `X-Robots-Tag: noindex` を付ける
-- [ ] T018 [US2] `backend/templates/home/index.html.twig` に `{% block canonical %}<link rel="canonical" href="{{ site_origin|trim('/', 'right') }}{{ path('app_home') }}">{% endblock %}` を追加する。コメントに「リクエストのクエリを使わず、utm などのパラメーター付きで開いてもパラメーターなしのトップを指す」旨を書く（research R4）
-- [ ] T019 [US2] `scripts/verify-prod.sh` の「2. 画面とアセット」に、T011 の robots の確認の後ろで次を足す（FR-016、research R12）：
+- [X] T014 [P] [US2] `backend/templates/seo/robots.txt.twig` を新規作成する。contracts「`/robots.txt`」の 4 行（`User-agent: *`、`Disallow:`、空行、`Sitemap: {{ site_origin|trim('/', 'right') }}{{ path('app_sitemap') }}`）だけを出す。Twig のコメントで「予報画面を Disallow にするとクローラーが noindex を読めず、アドレスだけが載るため、どの画面も禁止しない」旨を書く（research R2）。twig-cs-fixer で末尾の改行などが崩れないか確かめる
+- [X] T015 [P] [US2] `backend/templates/seo/sitemap.xml.twig` を新規作成する。contracts「`/sitemap.xml`」の XML を出し、`<loc>` は `{{ site_origin|trim('/', 'right') }}{{ path('app_home') }}`。`lastmod` などを出さない理由（正確な更新日時を持たないため）を Twig のコメントで書く（research R3）
+- [X] T016 [P] [US2] `backend/src/Presentation/Web/Controller/RobotsTxtController.php` を新規作成する。`HomeController` と同じ形の `final class RobotsTxtController extends AbstractController`、`#[Route('/robots.txt', name: 'app_robots_txt', methods: ['GET'])]`、`__invoke(): Response` で `seo/robots.txt.twig` を描画し、`Content-Type: text/plain; charset=UTF-8` と `X-Robots-Tag: noindex` を付けた Response を返す。クラスの PHPDoc に、`public/` の静的ファイルにせずルートにする理由（`DEFAULT_URI` から作り、環境ごとのアドレスにするため。research R1）と `X-Robots-Tag` を付ける理由（登録対象はトップだけ。research R9）を日本語で書く
+- [X] T017 [P] [US2] `backend/src/Presentation/Web/Controller/SitemapController.php` を新規作成する。T016 と同じ形で `#[Route('/sitemap.xml', name: 'app_sitemap', methods: ['GET'])]`、`seo/sitemap.xml.twig` を描画し、`Content-Type: application/xml; charset=UTF-8` と `X-Robots-Tag: noindex` を付ける
+- [X] T018 [US2] `backend/templates/home/index.html.twig` に `{% block canonical %}<link rel="canonical" href="{{ site_origin|trim('/', 'right') }}{{ path('app_home') }}">{% endblock %}` を追加する。コメントに「リクエストのクエリを使わず、utm などのパラメーター付きで開いてもパラメーターなしのトップを指す」旨を書く（research R4）
+- [X] T019 [US2] `scripts/verify-prod.sh` の「2. 画面とアセット」に、T011 の robots の確認の後ろで次を足す（FR-016、research R12）：
   - トップの canonical が `https://${HOST}/`（`<link rel="canonical" href="https://${HOST}/">` を含む）
   - `/robots.txt` が 200、`head_content_type` が `text/plain; charset=UTF-8`、本文に `Sitemap: https://${HOST}/sitemap.xml` を含む
   - `/sitemap.xml` が 200、`head_content_type` が `application/xml; charset=UTF-8`、本文に `<loc>https://${HOST}/</loc>` を含む
   - `head_content_type` は既存の定義より後ろで使うか、定義をこの確認より前に移す
-- [ ] T020 [US2] `docker compose exec php composer check` を通し（T013 が通ること）、`bash scripts/verify-prod.sh` が全部成功することを確かめる
+- [X] T020 [US2] `docker compose exec php composer check` を通し（T013 が通ること）、`bash scripts/verify-prod.sh` が全部成功することを確かめる
 
 **Checkpoint**: クローラー向けの案内・ページ一覧・正規のアドレスがそろう。US1 と独立に確かめられる
 

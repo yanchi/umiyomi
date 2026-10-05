@@ -88,8 +88,10 @@ backend/
 └── tests/Functional/
     └── HeadMetaTest.php              # 新規：全画面のアイコン・OG・robots・禁止語・入力の混入なし
 
+e2e/
+├── scripts/build-icons.mjs           # 新規：SVG → PNG・ICO の書き出し（開発時のみ。research R8）
+└── icons/                            # 新規：元の SVG（apple-touch-icon.svg・og-image.svg）
 scripts/
-├── build-icons.mjs                   # 新規：SVG → PNG・ICO の書き出し（開発時のみ。research R8）
 └── verify-prod.sh                    # 変更：本番イメージで OG 画像・アイコンが 200 で返ること
 deploy/README.md                      # 変更：公開時に noindex を外すと何が変わるかを追記
 ```

@@ -49,12 +49,12 @@ Technical Context に NEEDS CLARIFICATION は残っていない。以下は設�
 ## R7: エラー画面
 
 - **Decision**: `templates/bundles/TwigBundle/Exception/error.html.twig` を追加し、`base.html.twig` を継承する。本文は「ページが見つかりません／エラーが発生しました」とトップへのリンクだけ。タイトルは「エラー | UMIYOMI」。エラーの詳細・入力・例外メッセージは出さない（FR-010）。dev の例外画面（`error_page`・`exception_full`）は変更しない。
-- **Rationale**: 現状は Symfony 既定のエラー画面でアイコンも OG もなく、FR-001・SC-001 を満たせない。TwigBundle の上書きテンプレートは Symfony の標準の仕組みで、設定が要らない。404・500 は `base.html.twig` のフッター（`feedback_form`）などのグローバルに依存するので、グローバルが使えない 500 のときに描画が壊れないよう、`error.html.twig` では `base.html.twig` を使うが、test で 404 と 500 の両方を確認する。
+- **Rationale**: 現状は Symfony 既定のエラー画面でアイコンも OG もなく、FR-001・SC-001 を満たせない。TwigBundle の上書きテンプレートは Symfony の標準の仕組みで、設定が要らない。`base.html.twig` のフッターは `feedback_form`（Twig のグローバル。常に定義される）を評価するので、500 のときに描画が壊れないかを test で 404 と 500 の両方について確かめる。落ちる場合だけ、`error.html.twig` で `footer_feedback` ブロックを空にして上書きする。
 - **Note**: 予報の失敗（422・429・503）は `forecast/index.html.twig` で描画されるため、既に base 経由でメタ情報が付く。
 
 ## R8: 画像とアイコンの作り方
 
-- **Decision**: `icon.svg` と OG 画像の元の SVG を手書きでリポジトリに置き、`scripts/build-icons.mjs` が既存の e2e イメージの Chromium（Playwright）で PNG に書き出す。`favicon.ico` は PNG（32px）を ICO のヘッダーで包むだけの数十行を同じスクリプトに書く。書き出した PNG・ICO は**コミットする**。スクリプトは開発時に手で実行するもので、`composer check`・CI・本番イメージには入れない。
+- **Decision**: `icon.svg` と OG 画像の元の SVG を手書きでリポジトリに置き、`e2e/scripts/build-icons.mjs`（元の SVG は `e2e/icons/`）が既存の e2e イメージの Chromium（Playwright）で PNG に書き出す。`favicon.ico` は PNG（32px）を ICO のヘッダーで包むだけの数十行を同じスクリプトに書く。書き出した PNG・ICO は**コミットする**。Playwright は `/e2e/node_modules` にあるので、スクリプトと元の SVG も `e2e/` 配下に置いて同じ解決経路で import する（`scripts/` 直下だと解決できない）。スクリプトは開発時に手で実行するもので、`composer check`・CI・本番イメージには入れない。
 - **Rationale**: ラスタライズのための追加パッケージ（ImageMagick・sharp など）を入れずに済む。日本語の文字は Chromium が OS のフォントで描くので、スクリプトは Docker の e2e イメージ内で実行して結果を固定する。成果物がコミットされるので、本番のビルドは変わらない。
 - **Alternatives**: デザインツールで手作業 → 再現できず、差し替え時に面倒。実行時に生成 → 動的画像は対象外で、実行時の依存が増える。
 

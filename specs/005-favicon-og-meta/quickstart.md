@@ -20,7 +20,7 @@ bash scripts/verify-prod.sh                     # 本番イメージで OG 画�
 ## 画像・アイコンの作り直し（デザインを変えるときだけ）
 
 ```sh
-docker compose --profile e2e run --rm --build e2e node scripts/build-icons.mjs
+docker compose --profile e2e run --rm --build e2e node scripts/build-icons.mjs   # /e2e/scripts/build-icons.mjs（e2e/scripts/ をマウント）
 ```
 
 元の SVG から PNG・ICO を書き出す。書き出した `backend/assets/images/*.png` と `backend/public/favicon.ico` は**コミットする**。

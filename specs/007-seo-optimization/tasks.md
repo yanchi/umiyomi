@@ -145,7 +145,7 @@ Search Console・リッチリザルトテストでの確認（SC-001〜SC-004）
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T021 [US3] `backend/tests/Functional/SeoTest.php` に JSON-LD の検査を追加する（T013 の後）：
+- [X] T021 [US3] `backend/tests/Functional/SeoTest.php` に JSON-LD の検査を追加する（T013 の後）：
   - トップ（`/` と `/?utm_source=x`）で `script[type="application/ld+json"]` がちょうど 1 つ、`json_decode(..., flags: JSON_THROW_ON_ERROR)` でき、`@context` が `https://schema.org`、`@type` が `WebSite`、`name` が `UMIYOMI`、`alternateName` が `ウミヨミ`、`url` が `http://localhost/`、`inLanguage` が `ja`、`description` が `head meta[name="description"]` の `content` と一致する（data-model「構造化データ」）
   - キーが上記の 7 つだけで、`offers`・`aggregateRating`・`review` などを含まない（FR-011）
   - 生の HTML（`$client->getResponse()->getContent()`）の JSON-LD 部分に `</` や生の `<`・`&` が現れない（`JSON_HEX_TAG`・`JSON_HEX_AMP`）
@@ -155,7 +155,7 @@ Search Console・リッチリザルトテストでの確認（SC-001〜SC-004）
 
 ### Implementation for User Story 3
 
-- [ ] T022 [US3] `backend/templates/home/index.html.twig` に `{% block structured_data %}` を追加し、`{'@context': 'https://schema.org', '@type': 'WebSite', name: 'UMIYOMI', alternateName: 'ウミヨミ', url: site_origin|trim('/', 'right') ~ path('app_home'), description: home_description, inLanguage: 'ja'}` を `json_encode(constant('JSON_UNESCAPED_UNICODE') b-or constant('JSON_UNESCAPED_SLASHES') b-or constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP'))|raw` で `<script type="application/ld+json">` に出す。直前のコメントに「HTML の自動エスケープでは `"` が `&quot;` になり JSON が壊れるので raw にする。値は固定の文言と設定値だけで利用者の入力は入らず、HEX_TAG・HEX_AMP で `</script>` から抜け出せない」「WebApplication は料金・評価が必須で、画面にない情報を作ることになるため WebSite だけにする」旨を書く（research R5）。`description` は T007 の `home_description` を使い、文言を二重に書かない。`docker compose exec php composer check` を通す（T021 が通ること）
+- [X] T022 [US3] `backend/templates/home/index.html.twig` に `{% block structured_data %}` を追加し、`{'@context': 'https://schema.org', '@type': 'WebSite', name: 'UMIYOMI', alternateName: 'ウミヨミ', url: site_origin|trim('/', 'right') ~ path('app_home'), description: home_description, inLanguage: 'ja'}` を `json_encode(constant('JSON_UNESCAPED_UNICODE') b-or constant('JSON_UNESCAPED_SLASHES') b-or constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP'))|raw` で `<script type="application/ld+json">` に出す。直前のコメントに「HTML の自動エスケープでは `"` が `&quot;` になり JSON が壊れるので raw にする。値は固定の文言と設定値だけで利用者の入力は入らず、HEX_TAG・HEX_AMP で `</script>` から抜け出せない」「WebApplication は料金・評価が必須で、画面にない情報を作ることになるため WebSite だけにする」旨を書く（research R5）。`description` は T007 の `home_description` を使い、文言を二重に書かない。`docker compose exec php composer check` を通す（T021 が通ること）
 
 **Checkpoint**: トップの構造化データがそろう。US1・US2 と独立に確かめられる
 

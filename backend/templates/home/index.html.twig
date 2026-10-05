@@ -14,6 +14,11 @@
 {# リクエストのクエリを使わず、utm などのパラメーター付きで開いてもパラメーターなしのトップを指す #}
 {% block canonical %}<link rel="canonical" href="{{ site_origin|trim('/', 'right') }}{{ path('app_home') }}">{% endblock %}
 
+{# HTML の自動エスケープでは " が &quot; になり JSON が壊れるので raw にする。値は固定の文言と設定値だけで利用者の入力は入らず、
+   HEX_TAG・HEX_AMP で </script> から抜け出せない。
+   WebApplication は料金・評価が必須で、画面にない情報を作ることになるため WebSite だけにする #}
+{% block structured_data %}<script type="application/ld+json">{{ {'@context': 'https://schema.org', '@type': 'WebSite', name: 'UMIYOMI', alternateName: 'ウミヨミ', url: site_origin|trim('/', 'right') ~ path('app_home'), description: home_description, inLanguage: 'ja'}|json_encode(constant('JSON_UNESCAPED_UNICODE') b-or constant('JSON_UNESCAPED_SLASHES') b-or constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP'))|raw }}</script>{% endblock %}
+
 {% block body %}
     <header class="page-header">
         <h1 class="site-title"><a href="{{ path('app_home') }}">UMIYOMI</a> <span class="site-title__tagline">風・波・うねりの予報を出航前に確認</span></h1>

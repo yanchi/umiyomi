@@ -22,6 +22,9 @@ final class SeoTest extends WebTestCase
 {
     private const string SITEMAP_NAMESPACE = 'http://www.sitemaps.org/schemas/sitemap/0.9';
 
+    // 航海の安全や出航の可否を断定する表現（FR-012）
+    private const array ASSERTIVE_PHRASES = ['安全です', '出航できます', '問題ありません'];
+
     private KernelBrowser $client;
 
     // debug を切ったカーネルは Twig のキャッシュを作り直さないので、変更後のテンプレートを検査するよう消す
@@ -130,6 +133,57 @@ final class SeoTest extends WebTestCase
 
         self::assertResponseStatusCodeSame($status);
         self::assertCount(0, $crawler->filter('link[rel="canonical"]'));
+        self::assertCount(0, $crawler->filter('script[type="application/ld+json"]'));
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function homeUrlsForStructuredData(): iterable
+    {
+        yield 'plain' => ['/'];
+        yield 'with query' => ['/?utm_source=x'];
+    }
+
+    #[DataProvider('homeUrlsForStructuredData')]
+    public function testHomeStructuredData(string $url): void
+    {
+        $crawler = $this->client->request('GET', $url);
+
+        self::assertResponseIsSuccessful();
+        $script = $crawler->filter('script[type="application/ld+json"]');
+        self::assertCount(1, $script);
+
+        $data = json_decode($script->text(), true, flags: \JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+        // 画面にない情報（料金・評価など）を入れない（FR-011）
+        self::assertSame(
+            ['@context', '@type', 'name', 'alternateName', 'url', 'description', 'inLanguage'],
+            array_keys($data),
+        );
+        self::assertSame('https://schema.org', $data['@context']);
+        self::assertSame('WebSite', $data['@type']);
+        self::assertSame('UMIYOMI', $data['name']);
+        self::assertSame('ウミヨミ', $data['alternateName']);
+        self::assertSame('http://localhost/', $data['url']);
+        self::assertSame('ja', $data['inLanguage']);
+        self::assertSame($crawler->filter('head meta[name="description"]')->attr('content'), $data['description']);
+        self::assertIsString($data['description']);
+        foreach (self::ASSERTIVE_PHRASES as $phrase) {
+            self::assertStringNotContainsString($phrase, $data['description']);
+        }
+    }
+
+    // |raw で出すので、値に < や & が入っても </script> から抜け出せないことを生の HTML で確かめる
+    public function testStructuredDataIsEscapedForHtml(): void
+    {
+        $this->client->request('GET', '/');
+
+        $html = (string) $this->client->getResponse()->getContent();
+        self::assertSame(1, preg_match('#<script type="application/ld\+json">(.*?)</script>#s', $html, $matches));
+        self::assertStringNotContainsString('</', $matches[1]);
+        self::assertStringNotContainsString('<', $matches[1]);
+        self::assertStringNotContainsString('&', $matches[1]);
     }
 
     /**

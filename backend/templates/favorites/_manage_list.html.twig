@@ -1,6 +1,7 @@
 {# トップ画面のお気に入り一覧。JavaScript が localStorage の内容を <template> から複製して描画する。予報の数値は出さない（FR-013） #}
 <section class="favorites" data-favorites="manage-list" data-confirm-remove="『{name}』をお気に入りから削除しますか？">
-    <h2 class="favorites-title">お気に入り</h2>
+    {# 最後の 1 件を削除したあとにフォーカスを移せるよう、プログラムからだけフォーカスできるようにする #}
+    <h2 class="favorites-title" tabindex="-1">お気に入り</h2>
     {{ include('favorites/_notes.html.twig') }}
     <p class="favorites-empty" data-favorites-state="empty" hidden>お気に入りはまだありません。予報画面で表示中の地点を保存できます。</p>
     <div data-favorites-state="ready" hidden>

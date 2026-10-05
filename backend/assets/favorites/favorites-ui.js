@@ -118,6 +118,29 @@ const renderPanel = (panel, list) => {
     showState(panel, 'saved');
 };
 
+// 削除のたびに一覧を描き直すと、別の項目で入力中の名前変更フォームが通知なしに消える。該当の項目だけを取り除く。
+// 取り除いた項目にフォーカスがあった場合、ページ先頭に戻らないよう近くの項目（なければ見出し）にフォーカスを移す
+const dropItem = (frame, item) => {
+    const items = item.parentElement;
+    const neighbor = item.nextElementSibling ?? item.previousElementSibling;
+    item.remove();
+
+    if (neighbor === null) {
+        showState(frame, 'empty');
+        frame.querySelector('.favorites-title')?.focus();
+
+        return;
+    }
+    (neighbor.querySelector('[data-favorites-action="remove"]:not([hidden])') ?? neighbor.querySelector('a:not([hidden])'))?.focus();
+};
+
+// 保存・削除で表示が切り替わると、押したボタンが hidden になってフォーカスが失われる。切り替え後の操作できる要素に移す
+const focusPanel = (panel) => {
+    const target = panel.querySelector('[data-favorites-state="saved"]:not([hidden]) [data-favorites-action="remove"]')
+        ?? panel.querySelector('[data-favorites-state="unsaved"]:not([hidden]) input');
+    target?.focus();
+};
+
 const RENAME_CONTROLS = '[data-favorites-action="rename"], [data-favorites-action="remove"]';
 
 const setRenaming = (item, renaming) => {
@@ -177,8 +200,14 @@ const setupManageList = (frame, store, render) => {
                 if (outcome === 'cancelled') {
                     return;
                 }
-                render();
-                showMessage(frame, outcome === 'write_failed' ? 'write_failed' : null);
+                if (outcome === 'write_failed') {
+                    showMessage(frame, 'write_failed');
+
+                    return;
+                }
+                // not_found（別のタブで削除済み）も、この項目はもう存在しないので取り除く
+                dropItem(frame, item);
+                showMessage(frame, null);
 
                 return;
             }
@@ -200,9 +229,10 @@ const setupManageList = (frame, store, render) => {
 
             return;
         }
+        const item = form.closest('[data-favorites-key]');
         if (!result.ok) {
             // not_found：別のタブで削除済み
-            render();
+            dropItem(frame, item);
 
             return;
         }
@@ -212,9 +242,10 @@ const setupManageList = (frame, store, render) => {
             return;
         }
 
-        render();
+        // 他の項目で開いている名前変更フォームを残すため、描き直さずこの項目の表示名だけ更新する。並び順は変わらない（FR-008）
+        setField(item, 'name', displayName(findByKey(result.list, key)));
+        closeRename(item);
         showMessage(frame, null);
-        frame.querySelector(`[data-favorites-key="${CSS.escape(key)}"] [data-favorites-action="rename"]`)?.focus();
     });
 };
 
@@ -241,6 +272,9 @@ const setupSavePanel = (panel, store, render) => {
             // 別のタブで保存済みになっていた場合は、保存せず保存済みの表示に切り替える
             showMessage(panel, result.error === 'limit' ? 'limit' : null);
             render();
+            if (result.error === 'duplicate') {
+                focusPanel(panel);
+            }
 
             return;
         }
@@ -253,6 +287,7 @@ const setupSavePanel = (panel, store, render) => {
         input.value = '';
         render();
         showMessage(panel, 'saved');
+        focusPanel(panel);
     });
 
     panel.addEventListener('click', (event) => {
@@ -268,6 +303,9 @@ const setupSavePanel = (panel, store, render) => {
         render();
         // 別のタブで削除済み（not_found）のときは、メッセージを出さず表示だけ更新する
         showMessage(panel, outcome === 'removed' ? 'removed' : outcome === 'write_failed' ? 'write_failed' : null);
+        if (outcome !== 'write_failed') {
+            focusPanel(panel);
+        }
     });
 };
 

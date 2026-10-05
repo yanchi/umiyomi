@@ -15,6 +15,7 @@ use App\Domain\Marine\MarineForecast;
 final class FakeMarineForecastProvider implements MarineForecastProvider
 {
     private bool $fails = false;
+    private bool $crashes = false;
     private Availability $sea = Availability::Available;
     private int $callCount = 0;
 
@@ -25,6 +26,10 @@ final class FakeMarineForecastProvider implements MarineForecastProvider
     public function forecast(Coordinate $coordinate, ForecastPeriod $period): MarineForecast
     {
         ++$this->callCount;
+
+        if ($this->crashes) {
+            throw new \RuntimeException('Fake provider is set to crash.');
+        }
 
         if ($this->fails) {
             throw new FetchFailure('Fake provider is set to fail.');
@@ -43,6 +48,12 @@ final class FakeMarineForecastProvider implements MarineForecastProvider
     public function willFail(bool $fails = true): void
     {
         $this->fails = $fails;
+    }
+
+    // FetchFailure ではない想定外の例外（500 の画面を再現するため）
+    public function willCrash(): void
+    {
+        $this->crashes = true;
     }
 
     public function willReturnSeaAvailability(Availability $sea): void

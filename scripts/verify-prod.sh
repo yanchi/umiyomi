@@ -186,6 +186,35 @@ INPUT_JS_PATH="$(printf '%s' "$HOME_HTML" | grep -oE '/assets/coordinate-input/c
 ok '入力補助の JS が読み込まれる' \
    "$([ -n "$INPUT_JS_PATH" ] && http_code "$BASE$INPUT_JS_PATH" || echo 'importmap になし')" '200'
 
+# アイコンと共有用画像（005）。ハッシュ付きの URL が compile 済みで返らないと、タブのアイコンと共有プレビューが prod でだけ壊れる
+head_content_type() { curl -s -o /dev/null -D - "$1" | tr -d '\r' | awk -F': ' 'tolower($1) == "content-type" { print $2 }'; }
+meta_content() { printf '%s' "$1" | grep -oE "<meta property=\"$2\" content=\"[^\"]+\"" | head -1 | sed -E 's/.*content="([^"]+)"/\1/' || true; }
+
+ICON_SVG_PATH="$(printf '%s' "$HOME_HTML" | grep -oE '/assets/images/icon-[^"]+\.svg' | head -1 || true)"
+ICON_PNG_PATH="$(printf '%s' "$HOME_HTML" | grep -oE '/assets/images/icon-192-[^"]+\.png' | head -1 || true)"
+APPLE_ICON_PATH="$(printf '%s' "$HOME_HTML" | grep -oE '/assets/images/apple-touch-icon-[^"]+\.png' | head -1 || true)"
+OG_IMAGE_URL="$(meta_content "$HOME_HTML" 'og:image')"
+# og:image は DEFAULT_URI（検証用のドメイン）から作った完全なアドレスなので、取得はパスだけを手元のポートへ向ける
+OG_IMAGE_PATH="${OG_IMAGE_URL#https://${HOST}}"
+OG_IMAGE_PREFIX="https://${HOST}/assets/images/og-image-"
+ok 'og:image は DEFAULT_URI から作った完全なアドレス' \
+   "$([ "${OG_IMAGE_URL#"$OG_IMAGE_PREFIX"}" != "$OG_IMAGE_URL" ] && [ "${OG_IMAGE_URL%.png}" != "$OG_IMAGE_URL" ] && echo OK || echo "$OG_IMAGE_URL")" 'OK'
+ok 'icon.svg' "$([ -n "$ICON_SVG_PATH" ] && head_content_type "$BASE$ICON_SVG_PATH" || echo 'link なし')" 'image/svg+xml'
+ok 'icon-192.png' "$([ -n "$ICON_PNG_PATH" ] && head_content_type "$BASE$ICON_PNG_PATH" || echo 'link なし')" 'image/png'
+ok 'apple-touch-icon.png' "$([ -n "$APPLE_ICON_PATH" ] && head_content_type "$BASE$APPLE_ICON_PATH" || echo 'link なし')" 'image/png'
+ok 'og-image.png' "$([ -n "$OG_IMAGE_PATH" ] && head_content_type "$BASE$OG_IMAGE_PATH" || echo 'meta なし')" 'image/png'
+ok '/favicon.ico' "$(http_code "$BASE/favicon.ico")" '200'
+case "$(head_content_type "$BASE/favicon.ico")" in
+    image/vnd.microsoft.icon|image/x-icon) FAVICON_TYPE='ico' ;;
+    *) FAVICON_TYPE="$(head_content_type "$BASE/favicon.ico")" ;;
+esac
+ok '/favicon.ico の Content-Type' "$FAVICON_TYPE" 'ico'
+# エラー画面（TwigBundle の error.html.twig）にも同じアイコンが付く
+ok '404 の画面にもアイコンの link がある' \
+   "$(curl -s "$BASE/nope" | grep -q 'rel="apple-touch-icon"' && echo あり || echo なし)" 'あり'
+ok '予報の画面にもアイコンの link がある' \
+   "$(curl -s "$BASE/forecast?lat=N27&lon=" | grep -q 'rel="apple-touch-icon"' && echo あり || echo なし)" 'あり'
+
 # 度分の入力は予報を取得せずに十進数の URL へ 303 でリダイレクトする（外部 API は呼ばない）
 REDIRECT_URL="$BASE/forecast?lat=27%C2%B045.0%27N&lon=129%C2%B003.0%27E"
 ok '度分の入力は 303' "$(http_code "$REDIRECT_URL")" '303'

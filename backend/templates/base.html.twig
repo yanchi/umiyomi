@@ -4,6 +4,23 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>{% block title %}UMIYOMI{% endblock %}</title>
+        <meta name="description" content="{% block meta_description %}緯度・経度を入力すると、風・波・うねりの時間別予報を確認できます。出航の判断には、気象庁などの警報・注意報も確認してください。{% endblock %}">
+        {# 新しい画面が意図せず検索エンジンに載らないよう、既定は「登録しない」にする。載せたい画面だけ空で上書きする #}
+        {% block robots %}<meta name="robots" content="noindex">{% endblock %}
+        <link rel="icon" href="/favicon.ico" sizes="32x32">
+        <link rel="icon" href="{{ asset('images/icon.svg') }}" type="image/svg+xml">
+        <link rel="icon" href="{{ asset('images/icon-192.png') }}" type="image/png" sizes="192x192">
+        <link rel="apple-touch-icon" href="{{ asset('images/apple-touch-icon.png') }}">
+        <meta property="og:site_name" content="UMIYOMI">
+        <meta property="og:type" content="website">
+        <meta property="og:locale" content="ja_JP">
+        <meta property="og:title" content="{{ block('title') }}">
+        <meta property="og:description" content="{{ block('meta_description') }}">
+        <meta property="og:image" content="{{ site_origin|trim('/', 'right') ~ asset('images/og-image.png') }}">
+        <meta property="og:image:width" content="1200">
+        <meta property="og:image:height" content="630">
+        <meta property="og:image:alt" content="UMIYOMI のロゴ。風・波・うねりの予報を出航前に確認するサービス">
+        <meta name="twitter:card" content="summary_large_image">
         {% block head_meta %}{% endblock %}
         {% block stylesheets %}
         {% endblock %}

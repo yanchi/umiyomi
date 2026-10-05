@@ -38,6 +38,11 @@ services:
     volumes:
       - ./e2e/tests:/e2e/tests
       - ./e2e/playwright.config.js:/e2e/playwright.config.js
+      # アイコン・共有用画像の書き出し（e2e/scripts/build-icons.mjs）用。通常のテストでは使わない
+      - ./e2e/scripts:/e2e/scripts
+      - ./e2e/icons:/e2e/icons
+      - ./backend/assets/images:/out/images
+      - ./backend/public:/out/public
 
 volumes:
   caddy_data:

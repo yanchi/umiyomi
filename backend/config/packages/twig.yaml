@@ -2,6 +2,8 @@ twig:
     file_name_pattern: '*.twig'
     globals:
         feedback_form: '@App\Presentation\Web\Feedback\FeedbackFormLink'
+        # Host ヘッダーに依存すると他人のドメインを OG 画像に埋め込ませる経路になるため、設定済みの DEFAULT_URI から作る
+        site_origin: '%env(DEFAULT_URI)%'
 
 when@test:
     twig:

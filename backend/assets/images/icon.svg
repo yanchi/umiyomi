@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+    <style>
+        .bg { fill: #0b3d6e; }
+        .wave { fill: none; stroke: #fff; stroke-width: 5.5; stroke-linecap: round; stroke-linejoin: round; }
+        /* ダークのタブ背景に地が溶けないよう、少し明るい青にして輪郭を残す */
+        @media (prefers-color-scheme: dark) {
+            .bg { fill: #1f6fb8; }
+        }
+    </style>
+    <rect class="bg" width="64" height="64" rx="14"/>
+    <path class="wave" d="M10 25q5.5-8 11 0t11 0t11 0t11 0"/>
+    <path class="wave" d="M10 41q5.5-8 11 0t11 0t11 0t11 0"/>
+</svg>

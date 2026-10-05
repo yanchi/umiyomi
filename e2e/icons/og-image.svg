@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+    <!-- LINE・X・Slack の切り取りに耐えるよう、端から 10% は空ける（x: 120〜1080、y: 63〜567） -->
+    <rect width="1200" height="630" fill="#0b3d6e"/>
+    <g transform="translate(130 215) scale(3.125)">
+        <rect width="64" height="64" rx="14" fill="#1f6fb8"/>
+        <g fill="none" stroke="#fff" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 25q5.5-8 11 0t11 0t11 0t11 0"/>
+            <path d="M10 41q5.5-8 11 0t11 0t11 0t11 0"/>
+        </g>
+    </g>
+    <g fill="#fff" font-family="'Noto Sans CJK JP','IPAGothic','IPAPGothic','Hiragino Sans',sans-serif">
+        <text x="400" y="320" font-size="116" font-weight="700" letter-spacing="6">UMIYOMI</text>
+        <text x="404" y="400" font-size="40">風・波・うねりの予報を、出航前に。</text>
+    </g>
+</svg>

@@ -82,6 +82,9 @@ ShipInfoV2 の `deploy/README.md`（2026-10-03 時点）より。足すときは
 2. `sudo nginx -t && sudo systemctl reload nginx`
 3. `scripts/verify-prod.sh` の X-Robots-Tag の確認を外す
 
+`X-Robots-Tag` を消すと、検索エンジンに登録されるのはトップだけになる。予報・フィードバック案内・エラー画面は、アプリが返す `<meta name="robots" content="noindex">` で登録されない。
+LINE・X・Slack などの共有プレビュー（OG）は、`X-Robots-Tag` が残っていても機能するので、消す前から確かめられる。
+
 ## フィードバックのフォームを設定する
 
 フォームを設定するまで、フッターにフィードバックのリンクは出ない（未設定のままデプロイしてよい）。

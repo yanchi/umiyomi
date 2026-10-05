@@ -109,6 +109,8 @@ Domain設計 / Repository境界 / 画面・URL設計（将来はAPI Contract） 
 ## Active Technologies
 - PHP 8.4（FrankenPHP、Docker） + Symfony 8.1（FrameworkBundle、TwigBundle、HttpClient、Cache、AssetMapper）。追加：`symfony/clock`、`symfony/rate-limiter` (001-marine-forecast-view)
 - なし（DB は導入しない）。予報と回数制限のカウンターは Symfony Cache（dev/prod はファイルシステム、test は in-memory。複数台構成時は Redis） (001-marine-forecast-view)
+- PHP 8.4（FrankenPHP、Docker）、JavaScript（ES2022 の ES Module。ビルドなし） + 既存の Symfony 8.1（TwigBundle、AssetMapper）。新しい Composer / npm パッケージは追加しない。開発用イメージと CI に Node.js 20（テスト実行のみ） (002-favorite-locations)
+- ブラウザの localStorage（キー `umiyomi.favorites`、JSON 1 件）。サーバー側の保存なし (002-favorite-locations)
 
 ## Recent Changes
 - 001-marine-forecast-view: Added PHP 8.4（FrankenPHP、Docker） + Symfony 8.1（FrameworkBundle、TwigBundle、HttpClient、Cache、AssetMapper）。追加：`symfony/clock`、`symfony/rate-limiter`

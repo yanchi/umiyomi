@@ -76,7 +76,7 @@ Search Console・リッチリザルトテストでの確認（SC-001〜SC-004）
 - [ ] T005 [P] [US1] `backend/tests/Functional/HeadMetaTest.php` を更新する：
   - クラス定数 `HOME_DESCRIPTION` に contracts/web-ui.md「トップの説明文」の文字列を追加し、`testHomeMeta` でトップの `meta[name="description"]` が `HOME_DESCRIPTION` と一致すること、`mb_strlen` が 120 以下であること、`og:description` と一致することを検査する（FR-010）。他の画面のテスト（`testForecastMeta` など）は `COMMON_DESCRIPTION` のまま
   - `testOpenGraphOnEveryScreen` などがトップにも `COMMON_DESCRIPTION` を期待している箇所があれば、トップだけ `HOME_DESCRIPTION` に変える
-  - `screens()` に外部送信の案内（`/external-transmission`）がなければ追加し、`meta[name="robots"][content="noindex"]` が 1 つあることを検査するテスト（`testExternalTransmissionMeta`）を足す（quickstart「robots」、FR-001）
+  - `screens()` に外部送信の案内（`'external transmission' => ['external_transmission']`。`open()` に `/external-transmission` を開く分岐を足す）を追加し、`meta[name="robots"][content="noindex"]` が 1 つあることを検査するテスト（`testExternalTransmissionMeta`）を足す（quickstart「robots」、FR-001。現状は `screens()` にも `ExternalTransmissionPageTest` にも robots の検査がない）
   - `testHomeMeta` の `meta robots` が 0 個の検査は維持する
   - 実装前に失敗することを確認する
 - [ ] T006 [P] [US1] `e2e/tests/home.spec.js` を新規作成する（既存の `e2e/tests/favorites.spec.js` と同じ書き方）。トップを開いた直後、スクロールせずに緯度・経度の入力欄と「予報を表示」ボタンが `toBeInViewport()` であること（desktop・mobile の両 project で動く）。加えて `test.describe` 内で `test.use({ viewport: { width: 375, height: 667 } })` にした同じ検査を 1 つ置く（SC-006）。「UMIYOMI でできること」の見出しが表示されていること（`toBeVisible()` をスクロール後に）も確かめる
@@ -95,8 +95,7 @@ Search Console・リッチリザルトテストでの確認（SC-001〜SC-004）
   - certbot のチャレンジのパスに `X-Robots-Tag: noindex` が付くことを確かめる：`curl -s -o /dev/null -D - -H "Host: ${HOST}" "http://127.0.0.1:${VHOST_PORT}/.well-known/acme-challenge/verify"` の応答（ファイルがないので 404。`always` により付く）に `X-Robots-Tag: noindex` が含まれること
   - 「vhost を本当に通して、検索エンジンに載せないヘッダーが付くか確かめる」のコメントを、新しい確認内容に合わせて改める
 - [ ] T011 [US1] `scripts/verify-prod.sh` の「2. 画面とアセット」に、本番イメージでの robots の確認を足す（FR-016）：トップ（`$HOME_HTML`）に `name="robots"` がないこと、予報の入力不正（`$BASE/forecast?lat=N27&lon=`。外部 API を呼ばない 422）・外部送信の案内（`$BASE/external-transmission`）・404（`$BASE/nope`）の HTML に `<meta name="robots" content="noindex">` があること。フィードバック案内はフォーム未設定で 404 のため対象外である旨を 1 行コメントで書く
-- [ ] T012 [US1] `deploy/README.md` の 8 行目（「公開するまでは vhost が `X-Robots-Tag: noindex, nofollow` を付けて…」）と「DNS と nginx」の手順 5（noindex が付いていることを確かめる）を、公開後の状態（トップだけ登録対象・他の画面はアプリの `noindex`）に合わせて改める。「公開するとき」の節はこの時点では残し、US4（T024）で「検索エンジンへの公開」に置き換える
-- [ ] T013 [US1] `docker compose exec php composer check` を通し（T004・T005 が通ること）、`docker compose --profile e2e run --rm --build e2e` で T006 が desktop・mobile とも通ること、`bash scripts/verify-prod.sh` が全部成功することを確かめる
+- [ ] T012 [US1] `docker compose exec php composer check` を通し（T004・T005 が通ること）、`docker compose --profile e2e run --rm --build e2e` で T006 が desktop・mobile とも通ること、`bash scripts/verify-prod.sh` が全部成功することを確かめる
 
 **Checkpoint**: トップだけが登録可能になり、本文・見出し・説明文がそろう。ここだけでもマージ・公開できる（MVP）
 
@@ -112,7 +111,7 @@ Search Console・リッチリザルトテストでの確認（SC-001〜SC-004）
 
 > 先に書き、実装前に失敗することを確認する
 
-- [ ] T014 [US2] `backend/tests/Functional/SeoTest.php` を新規作成する（`HeadMetaTest` と同じく Fake Provider を使い、各リクエストで Provider の呼び出し回数を確かめる。テスト環境の `DEFAULT_URI` は `http://localhost`）：
+- [ ] T013 [US2] `backend/tests/Functional/SeoTest.php` を新規作成する（`HeadMetaTest` と同じく Fake Provider を使い、各リクエストで Provider の呼び出し回数を確かめる。テスト環境の `DEFAULT_URI` は `http://localhost`）：
   - `GET /robots.txt`：200、`Content-Type` が `text/plain; charset=UTF-8`、`X-Robots-Tag` が `noindex`、本文が contracts のとおり `User-agent: *` / 空の `Disallow:` / `Sitemap: http://localhost/sitemap.xml` を含み、値を持つ `Disallow:` 行がない、Provider 呼び出し 0 回
   - `GET /sitemap.xml`：200、`Content-Type` が `application/xml; charset=UTF-8`、`X-Robots-Tag` が `noindex`、`simplexml_load_string` で読め、名前空間 `http://www.sitemaps.org/schemas/sitemap/0.9` の `url` が 1 件で `loc` が `http://localhost/`、`lastmod`・`changefreq`・`priority` を含まない、Provider 呼び出し 0 回
   - canonical（DataProvider）：`/` と `/?utm_source=x&lat=1` で `head link[rel="canonical"]` が 1 つで `href` が `http://localhost/`（クエリが混ざらない。US2-3）
@@ -122,17 +121,17 @@ Search Console・リッチリザルトテストでの確認（SC-001〜SC-004）
 
 ### Implementation for User Story 2
 
-- [ ] T015 [P] [US2] `backend/templates/seo/robots.txt.twig` を新規作成する。contracts「`/robots.txt`」の 4 行（`User-agent: *`、`Disallow:`、空行、`Sitemap: {{ site_origin|trim('/', 'right') }}{{ path('app_sitemap') }}`）だけを出す。Twig のコメントで「予報画面を Disallow にするとクローラーが noindex を読めず、アドレスだけが載るため、どの画面も禁止しない」旨を書く（research R2）。twig-cs-fixer で末尾の改行などが崩れないか確かめる
-- [ ] T016 [P] [US2] `backend/templates/seo/sitemap.xml.twig` を新規作成する。contracts「`/sitemap.xml`」の XML を出し、`<loc>` は `{{ site_origin|trim('/', 'right') }}{{ path('app_home') }}`。`lastmod` などを出さない理由（正確な更新日時を持たないため）を Twig のコメントで書く（research R3）
-- [ ] T017 [P] [US2] `backend/src/Presentation/Web/Controller/RobotsTxtController.php` を新規作成する。`HomeController` と同じ形の `final class RobotsTxtController extends AbstractController`、`#[Route('/robots.txt', name: 'app_robots_txt', methods: ['GET'])]`、`__invoke(): Response` で `seo/robots.txt.twig` を描画し、`Content-Type: text/plain; charset=UTF-8` と `X-Robots-Tag: noindex` を付けた Response を返す。クラスの PHPDoc に、`public/` の静的ファイルにせずルートにする理由（`DEFAULT_URI` から作り、環境ごとのアドレスにするため。research R1）と `X-Robots-Tag` を付ける理由（登録対象はトップだけ。research R9）を日本語で書く
-- [ ] T018 [P] [US2] `backend/src/Presentation/Web/Controller/SitemapController.php` を新規作成する。T017 と同じ形で `#[Route('/sitemap.xml', name: 'app_sitemap', methods: ['GET'])]`、`seo/sitemap.xml.twig` を描画し、`Content-Type: application/xml; charset=UTF-8` と `X-Robots-Tag: noindex` を付ける
-- [ ] T019 [US2] `backend/templates/home/index.html.twig` に `{% block canonical %}<link rel="canonical" href="{{ site_origin|trim('/', 'right') }}{{ path('app_home') }}">{% endblock %}` を追加する。コメントに「リクエストのクエリを使わず、utm などのパラメーター付きで開いてもパラメーターなしのトップを指す」旨を書く（research R4）
-- [ ] T020 [US2] `scripts/verify-prod.sh` の「2. 画面とアセット」に、T011 の robots の確認の後ろで次を足す（FR-016、research R12）：
+- [ ] T014 [P] [US2] `backend/templates/seo/robots.txt.twig` を新規作成する。contracts「`/robots.txt`」の 4 行（`User-agent: *`、`Disallow:`、空行、`Sitemap: {{ site_origin|trim('/', 'right') }}{{ path('app_sitemap') }}`）だけを出す。Twig のコメントで「予報画面を Disallow にするとクローラーが noindex を読めず、アドレスだけが載るため、どの画面も禁止しない」旨を書く（research R2）。twig-cs-fixer で末尾の改行などが崩れないか確かめる
+- [ ] T015 [P] [US2] `backend/templates/seo/sitemap.xml.twig` を新規作成する。contracts「`/sitemap.xml`」の XML を出し、`<loc>` は `{{ site_origin|trim('/', 'right') }}{{ path('app_home') }}`。`lastmod` などを出さない理由（正確な更新日時を持たないため）を Twig のコメントで書く（research R3）
+- [ ] T016 [P] [US2] `backend/src/Presentation/Web/Controller/RobotsTxtController.php` を新規作成する。`HomeController` と同じ形の `final class RobotsTxtController extends AbstractController`、`#[Route('/robots.txt', name: 'app_robots_txt', methods: ['GET'])]`、`__invoke(): Response` で `seo/robots.txt.twig` を描画し、`Content-Type: text/plain; charset=UTF-8` と `X-Robots-Tag: noindex` を付けた Response を返す。クラスの PHPDoc に、`public/` の静的ファイルにせずルートにする理由（`DEFAULT_URI` から作り、環境ごとのアドレスにするため。research R1）と `X-Robots-Tag` を付ける理由（登録対象はトップだけ。research R9）を日本語で書く
+- [ ] T017 [P] [US2] `backend/src/Presentation/Web/Controller/SitemapController.php` を新規作成する。T016 と同じ形で `#[Route('/sitemap.xml', name: 'app_sitemap', methods: ['GET'])]`、`seo/sitemap.xml.twig` を描画し、`Content-Type: application/xml; charset=UTF-8` と `X-Robots-Tag: noindex` を付ける
+- [ ] T018 [US2] `backend/templates/home/index.html.twig` に `{% block canonical %}<link rel="canonical" href="{{ site_origin|trim('/', 'right') }}{{ path('app_home') }}">{% endblock %}` を追加する。コメントに「リクエストのクエリを使わず、utm などのパラメーター付きで開いてもパラメーターなしのトップを指す」旨を書く（research R4）
+- [ ] T019 [US2] `scripts/verify-prod.sh` の「2. 画面とアセット」に、T011 の robots の確認の後ろで次を足す（FR-016、research R12）：
   - トップの canonical が `https://${HOST}/`（`<link rel="canonical" href="https://${HOST}/">` を含む）
   - `/robots.txt` が 200、`head_content_type` が `text/plain; charset=UTF-8`、本文に `Sitemap: https://${HOST}/sitemap.xml` を含む
   - `/sitemap.xml` が 200、`head_content_type` が `application/xml; charset=UTF-8`、本文に `<loc>https://${HOST}/</loc>` を含む
   - `head_content_type` は既存の定義より後ろで使うか、定義をこの確認より前に移す
-- [ ] T021 [US2] `docker compose exec php composer check` を通し（T014 が通ること）、`bash scripts/verify-prod.sh` が全部成功することを確かめる
+- [ ] T020 [US2] `docker compose exec php composer check` を通し（T013 が通ること）、`bash scripts/verify-prod.sh` が全部成功することを確かめる
 
 **Checkpoint**: クローラー向けの案内・ページ一覧・正規のアドレスがそろう。US1 と独立に確かめられる
 
@@ -146,17 +145,17 @@ Search Console・リッチリザルトテストでの確認（SC-001〜SC-004）
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T022 [US3] `backend/tests/Functional/SeoTest.php` に JSON-LD の検査を追加する（T014 の後）：
+- [ ] T021 [US3] `backend/tests/Functional/SeoTest.php` に JSON-LD の検査を追加する（T013 の後）：
   - トップ（`/` と `/?utm_source=x`）で `script[type="application/ld+json"]` がちょうど 1 つ、`json_decode(..., flags: JSON_THROW_ON_ERROR)` でき、`@context` が `https://schema.org`、`@type` が `WebSite`、`name` が `UMIYOMI`、`alternateName` が `ウミヨミ`、`url` が `http://localhost/`、`inLanguage` が `ja`、`description` が `head meta[name="description"]` の `content` と一致する（data-model「構造化データ」）
   - キーが上記の 7 つだけで、`offers`・`aggregateRating`・`review` などを含まない（FR-011）
   - 生の HTML（`$client->getResponse()->getContent()`）の JSON-LD 部分に `</` や生の `<`・`&` が現れない（`JSON_HEX_TAG`・`JSON_HEX_AMP`）
   - `description` に「安全です」「出航できます」「問題ありません」を含まない（FR-012）
-  - T014 の「canonical がない」DataProvider の全画面で `script[type="application/ld+json"]` が 0 個
+  - T013 の「canonical がない」DataProvider の全画面で `script[type="application/ld+json"]` が 0 個
   - 実装前に失敗することを確認する
 
 ### Implementation for User Story 3
 
-- [ ] T023 [US3] `backend/templates/home/index.html.twig` に `{% block structured_data %}` を追加し、`{'@context': 'https://schema.org', '@type': 'WebSite', name: 'UMIYOMI', alternateName: 'ウミヨミ', url: site_origin|trim('/', 'right') ~ path('app_home'), description: home_description, inLanguage: 'ja'}` を `json_encode(constant('JSON_UNESCAPED_UNICODE') b-or constant('JSON_UNESCAPED_SLASHES') b-or constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP'))|raw` で `<script type="application/ld+json">` に出す。直前のコメントに「HTML の自動エスケープでは `"` が `&quot;` になり JSON が壊れるので raw にする。値は固定の文言と設定値だけで利用者の入力は入らず、HEX_TAG・HEX_AMP で `</script>` から抜け出せない」「WebApplication は料金・評価が必須で、画面にない情報を作ることになるため WebSite だけにする」旨を書く（research R5）。`description` は T007 の `home_description` を使い、文言を二重に書かない。`docker compose exec php composer check` を通す（T022 が通ること）
+- [ ] T022 [US3] `backend/templates/home/index.html.twig` に `{% block structured_data %}` を追加し、`{'@context': 'https://schema.org', '@type': 'WebSite', name: 'UMIYOMI', alternateName: 'ウミヨミ', url: site_origin|trim('/', 'right') ~ path('app_home'), description: home_description, inLanguage: 'ja'}` を `json_encode(constant('JSON_UNESCAPED_UNICODE') b-or constant('JSON_UNESCAPED_SLASHES') b-or constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP'))|raw` で `<script type="application/ld+json">` に出す。直前のコメントに「HTML の自動エスケープでは `"` が `&quot;` になり JSON が壊れるので raw にする。値は固定の文言と設定値だけで利用者の入力は入らず、HEX_TAG・HEX_AMP で `</script>` から抜け出せない」「WebApplication は料金・評価が必須で、画面にない情報を作ることになるため WebSite だけにする」旨を書く（research R5）。`description` は T007 の `home_description` を使い、文言を二重に書かない。`docker compose exec php composer check` を通す（T021 が通ること）
 
 **Checkpoint**: トップの構造化データがそろう。US1・US2 と独立に確かめられる
 
@@ -170,7 +169,8 @@ Search Console・リッチリザルトテストでの確認（SC-001〜SC-004）
 
 ### Implementation for User Story 4
 
-- [ ] T024 [US4] `deploy/README.md` の「公開するとき」の節を「検索エンジンへの公開」に置き換える（FR-013、quickstart「公開の操作」、research R8・R10）。次を含める：
+- [ ] T023 [US4] `deploy/README.md` の「公開するとき」の節を「検索エンジンへの公開」に置き換える（FR-013、quickstart「公開の操作」、research R8・R10）。README の書き換えはこのタスクにまとめる（nginx の反映は運営者がマージ後に行うので、US1 の時点で README だけ公開後の書き方にしない）。次を含める：
+  - 冒頭（「公開するまでは vhost が `X-Robots-Tag: noindex, nofollow` を付けて…」）と「DNS と nginx」の手順 5（noindex が付いていることを確かめる）を、公開後の状態（トップだけ登録対象・他の画面はアプリの `noindex`。nginx はチャレンジのパスにだけ `noindex`）に合わせて改め、「検索エンジンへの公開」の節への参照にする
   - 前提：007 が master にマージ・デプロイされていること（`curl -s https://umiyomi.isl-mentor.com/robots.txt` が `Sitemap:` を返す）。デプロイ前に nginx を変えても、トップが登録可能になり robots.txt が 404 になるだけで他の画面は `noindex` のまま（data-model「状態の遷移」）
   - 反映前の確認（`X-Robots-Tag: noindex, nofollow` が付いている）
   - VPS の `/etc/nginx/sites-available/umiyomi` の変更：80・443（certbot が写した）両方の server から `add_header X-Robots-Tag "noindex, nofollow" always;` を消し、`/.well-known/acme-challenge/` の location に `add_header X-Robots-Tag "noindex" always;` を足す → `sudo nginx -t && sudo systemctl reload nginx`
@@ -181,7 +181,7 @@ Search Console・リッチリザルトテストでの確認（SC-001〜SC-004）
   - Bing Webmaster Tools は任意で、Search Console からインポートできる旨を 1 行
   - 元に戻すとき（server に `add_header X-Robots-Tag "noindex, nofollow" always;` を戻して reload。急ぐときは Search Console の「削除」）
   - 既存の「共有プレビュー（OG）は `X-Robots-Tag` があっても機能する」旨の記述は、公開後の状態に合わない部分を整理する
-- [ ] T025 [US4] `deploy/README.md` 全体と `deploy/nginx/umiyomi.conf` の冒頭コメントを読み直し、「公開するまで」「公開するとき」を前提にした記述が残っていないこと、T012・T024 の内容と矛盾しないことを確かめる（FR-013）
+- [ ] T024 [US4] `deploy/README.md` 全体と `deploy/nginx/umiyomi.conf` の冒頭コメントを読み直し、「公開するまで」「公開するとき」を前提にした記述が残っていないこと、T023 の内容と矛盾しないことを確かめる（FR-013）
 
 **Checkpoint**: 手順書だけで公開と効果測定の準備ができる
 
@@ -191,9 +191,9 @@ Search Console・リッチリザルトテストでの確認（SC-001〜SC-004）
 
 **Purpose**: 全体の整合と最終確認
 
-- [ ] T026 [P] `docker compose up -d` の開発環境で quickstart.md「手元での手動確認」を行う：`curl -i http://localhost:8000/robots.txt`・`/sitemap.xml`、`/?utm_source=test` の canonical・JSON-LD・robots、ブラウザの 375×667 で入力欄と「予報を表示」がスクロールなしで見えること、お気に入りの後に本文の 3 見出しが出ること、JavaScript を無効にしても本文が表示されること
-- [ ] T027 [P] `CLAUDE.md` と `specs/007-seo-optimization/` 以外のドキュメント（`docs/SPEC.md` など）に「公開前は全画面 noindex」の前提の記述が残っていないか `grep -rn "X-Robots-Tag\|公開するまで\|公開するとき" --include=*.md .` で確かめ、残っていれば公開後の状態に合わせて直す
-- [ ] T028 最終確認：`docker compose exec php composer check`、`docker compose --profile e2e run --rm --build e2e`、`bash scripts/verify-prod.sh` がすべて通ることを確かめ、結果（成功・失敗の件数）を報告する
+- [ ] T025 [P] `docker compose up -d` の開発環境で quickstart.md「手元での手動確認」を行う：`curl -i http://localhost:8000/robots.txt`・`/sitemap.xml`、`/?utm_source=test` の canonical・JSON-LD・robots、ブラウザの 375×667 で入力欄と「予報を表示」がスクロールなしで見えること、お気に入りの後に本文の 3 見出しが出ること、JavaScript を無効にしても本文が表示されること
+- [ ] T026 [P] `CLAUDE.md`・`docs/` などのドキュメントに「公開前は全画面 noindex」の前提の記述が残っていないか `grep -rn "X-Robots-Tag\|公開するまで\|公開するとき" --include='*.md' . | grep -v '^\./specs/'` で確かめ、残っていれば公開後の状態に合わせて直す。`specs/` 配下（005・006 など）は当時の判断の記録なので直さない
+- [ ] T027 最終確認：`docker compose exec php composer check`、`docker compose --profile e2e run --rm --build e2e`、`bash scripts/verify-prod.sh` がすべて通ることを確かめ、結果（成功・失敗の件数）を報告する
 
 ---
 
@@ -204,9 +204,9 @@ Search Console・リッチリザルトテストでの確認（SC-001〜SC-004）
 - **Setup (Phase 1)**: 依存なし
 - **Foundational (Phase 2)**: Setup の後。US2・US3 のブロックの上書きの前提
 - **US1 (Phase 3)**: Foundational の後（US1 自体はブロックを使わないが、`home/index.html.twig` の変更の衝突を避けるため先に終える）
-- **US2 (Phase 4)**: Foundational の後。`home/index.html.twig`（T019）と `verify-prod.sh`（T020）は US1 の T007・T011 と同じファイルなので、US1 の後に行う
-- **US3 (Phase 5)**: US1 の T007（`home_description`）と US2 の T014（`SeoTest.php` と DataProvider）の後
-- **US4 (Phase 6)**: US1 の T009・T012 の後（nginx の変更内容と README の前半の書き換えを前提にする）。US2・US3 とは独立
+- **US2 (Phase 4)**: Foundational の後。`home/index.html.twig`（T018）と `verify-prod.sh`（T019）は US1 の T007・T011 と同じファイルなので、US1 の後に行う
+- **US3 (Phase 5)**: US1 の T007（`home_description`）と US2 の T013（`SeoTest.php` と DataProvider）の後
+- **US4 (Phase 6)**: US1 の T009 の後（nginx の変更内容を手順書に書く）。US2・US3 とは独立
 - **Polish (Phase 7)**: 全ストーリーの後
 
 ### User Story Dependencies
@@ -224,10 +224,10 @@ Search Console・リッチリザルトテストでの確認（SC-001〜SC-004）
 
 ### Parallel Opportunities
 
-- US1：T004・T005・T006（別ファイルのテスト）。実装は T007 → T008、T009 → T010 → T011、T012 はそれぞれ別系統なので、T007・T009・T012 は並行できる
-- US2：T015・T016・T017・T018（テンプレート 2 つと Controller 2 つ。別ファイル）
-- US4（T024）は US2・US3 と並行できる
-- Polish：T026・T027
+- US1：T004・T005・T006（別ファイルのテスト）。実装は T007 → T008 と T009 → T010 → T011 が別系統なので、T007・T009 は並行できる
+- US2：T014・T015・T016・T017（テンプレート 2 つと Controller 2 つ。別ファイル）
+- US4（T023・T024）は US2・US3 と並行できる
+- Polish：T025・T026
 
 ---
 

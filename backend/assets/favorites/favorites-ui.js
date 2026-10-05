@@ -1,5 +1,6 @@
 // お気に入りの DOM 操作。規則は favorite-list.js、保存は favorite-store.js に任せ、ここは描画とイベントだけを持つ。
 // 名前は利用者の入力なので、DOM には textContent / value / setAttribute だけで入れる（FR-014、research R5）。
+import { track } from '../analytics/analytics.js';
 import { add, coordinateLabel, displayName, favoriteKey, find, forecastUrl, remove, rename } from './favorite-list.js';
 import { createFavoriteStore } from './favorite-store.js';
 
@@ -205,6 +206,9 @@ const setupManageList = (frame, store, render) => {
 
                     return;
                 }
+                if (outcome === 'removed') {
+                    track('favorite_delete');
+                }
                 // not_found（別のタブで削除済み）も、この項目はもう存在しないので取り除く
                 dropItem(frame, item);
                 showMessage(frame, null);
@@ -286,6 +290,7 @@ const setupSavePanel = (panel, store, render) => {
 
         input.value = '';
         render();
+        track('favorite_save');
         showMessage(panel, 'saved');
         focusPanel(panel);
     });
@@ -301,6 +306,9 @@ const setupSavePanel = (panel, store, render) => {
             return;
         }
         render();
+        if (outcome === 'removed') {
+            track('favorite_delete');
+        }
         // 別のタブで削除済み（not_found）のときは、メッセージを出さず表示だけ更新する
         showMessage(panel, outcome === 'removed' ? 'removed' : outcome === 'write_failed' ? 'write_failed' : null);
         if (outcome !== 'write_failed') {

@@ -96,6 +96,14 @@ final class FeedbackPageTest extends WebTestCase
         self::assertCount(0, $crawler->filter('a.site-footer__feedback'));
     }
 
+    // フォームを開く操作を計測する目印（006）。リンク先の挙動は変えない
+    public function testFormLinkHasAnalyticsClickMarker(): void
+    {
+        $crawler = $this->client->request('GET', '/feedback');
+
+        self::assertSame('feedback_form_open', $crawler->filter('a.feedback-open')->attr('data-analytics-click'));
+    }
+
     public function testBackLinkWithoutContextGoesHome(): void
     {
         $crawler = $this->client->request('GET', '/feedback');

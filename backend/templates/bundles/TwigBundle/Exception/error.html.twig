@@ -1,5 +1,8 @@
 {% extends 'base.html.twig' %}
 
+{# クエリを捨てる。フォームの入力は GET のクエリにしか入らないため #}
+{% set analytics_page = {screen: 'error', path: app.request.pathInfo} %}
+
 {# 例外メッセージや入力は共有用情報にも画面にも出さない #}
 {% block title %}エラー | UMIYOMI{% endblock %}
 

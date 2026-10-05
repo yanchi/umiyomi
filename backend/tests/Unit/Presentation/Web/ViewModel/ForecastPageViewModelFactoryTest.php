@@ -365,6 +365,55 @@ final class ForecastPageViewModelFactoryTest extends TestCase
         self::assertNull($viewModel->favoriteTarget);
     }
 
+    /**
+     * @return iterable<string, array{MarineForecastResult, string}>
+     */
+    public static function analyticsScreenProvider(): iterable
+    {
+        $forecast = static fn (): MarineForecastView => new MarineForecastView(
+            27.75,
+            129.05,
+            new \DateTimeImmutable('2026-10-05T20:15:00+09:00'),
+            new \DateTimeImmutable('2026-10-05T21:15:00+09:00'),
+            GroupAvailability::Available,
+            GroupAvailability::Available,
+            [],
+        );
+
+        yield 'fresh' => [MarineForecastResult::fresh($forecast()), 'forecast'];
+        yield 'stale' => [MarineForecastResult::stale($forecast()), 'forecast'];
+        yield 'unavailable' => [MarineForecastResult::unavailable(27.75, 129.05), 'forecast_unavailable'];
+        yield 'rate limited' => [MarineForecastResult::rateLimited(27.75, 129.05), 'rate_limited'];
+    }
+
+    #[DataProvider('analyticsScreenProvider')]
+    public function testAnalyticsScreenAndQuery(MarineForecastResult $result, string $screen): void
+    {
+        $viewModel = $this->factory->create($this->query, $result);
+
+        self::assertSame($screen, $viewModel->analyticsScreen);
+        self::assertSame(['lat' => '27.75', 'lon' => '129.05'], $viewModel->analyticsQuery);
+    }
+
+    public function testAnalyticsQueryExcludesIgnoredField(): void
+    {
+        $query = new CoordinateQueryParser(new CoordinateNotationParser())->parse('35.10', '139.20', 'lon');
+
+        $viewModel = $this->factory->create($query, MarineForecastResult::fresh($this->forecast()));
+
+        self::assertSame(['lat' => '27.75', 'lon' => '129.05'], $viewModel->analyticsQuery);
+    }
+
+    public function testInvalidInputAnalyticsHasNoQuery(): void
+    {
+        $query = new CoordinateQueryParser(new CoordinateNotationParser())->parse('北緯二十七度', 'abc');
+
+        $viewModel = $this->factory->createForInvalidInput($query);
+
+        self::assertSame('invalid_input', $viewModel->analyticsScreen);
+        self::assertSame([], $viewModel->analyticsQuery);
+    }
+
     private function table(?MarineForecastView $forecast = null): ForecastTable
     {
         $table = $this->factory->create($this->query, MarineForecastResult::fresh($forecast ?? $this->forecast()))->table;

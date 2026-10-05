@@ -1,5 +1,8 @@
 {% extends 'base.html.twig' %}
 
+{# アドレスにクエリを付けない。地点や入力の文字列が入りうるため #}
+{% set analytics_page = {screen: 'feedback', path: path('app_feedback')} %}
+
 {% block title %}フィードバック | UMIYOMI{% endblock %}
 
 {% block meta_description %}UMIYOMI へのご意見・ご要望の案内です。{% endblock %}
@@ -45,7 +48,7 @@
     {% endif %}
 
     <p>
-        <a class="feedback-open" href="{{ page.formUrl }}" target="_blank" rel="noopener noreferrer">フィードバックのフォームを開く（新しいタブ）</a>
+        <a class="feedback-open" href="{{ page.formUrl }}" data-analytics-click="feedback_form_open" target="_blank" rel="noopener noreferrer">フィードバックのフォームを開く（新しいタブ）</a>
     </p>
     <p class="feedback-contact-note">返信用の連絡先の記入は任意です。</p>
 

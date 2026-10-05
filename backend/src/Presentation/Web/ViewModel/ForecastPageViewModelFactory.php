@@ -43,14 +43,14 @@ final readonly class ForecastPageViewModelFactory
             'input_lon' => mb_substr($query->rawLongitude, 0, FeedbackContextParser::MAX_INPUT_LENGTH),
         ];
 
-        return new ForecastPageViewModel($this->form($query, null), null, null, null, [], null, null, null, $feedbackQuery);
+        return new ForecastPageViewModel($this->form($query, null), null, null, null, [], null, null, null, $feedbackQuery, 'invalid_input', []);
     }
 
     public function create(CoordinateQuery $query, MarineForecastResult $result): ForecastPageViewModel
     {
         $forecast = $result->forecast;
         if (null === $forecast) {
-            return new ForecastPageViewModel($this->form($query, null), $this->notice($result->status, null), null, null, [], null, $this->favoriteTarget($result), $this->inputNotice($query), $this->feedbackQuery($result));
+            return new ForecastPageViewModel($this->form($query, null), $this->notice($result->status, null), null, null, [], null, $this->favoriteTarget($result), $this->inputNotice($query), $this->feedbackQuery($result), $this->analyticsScreen($result->status), $this->analyticsQuery($result));
         }
 
         $isStale = ForecastStatus::Stale === $result->status;
@@ -65,7 +65,34 @@ final readonly class ForecastPageViewModelFactory
             favoriteTarget: $this->favoriteTarget($result),
             inputNotice: $this->inputNotice($query),
             feedbackQuery: $this->feedbackQuery($result),
+            analyticsScreen: $this->analyticsScreen($result->status),
+            analyticsQuery: $this->analyticsQuery($result),
         );
+    }
+
+    // Twig に分岐を持たせず、ViewModel の変換として Unit Test できるようにするため、ここで決める
+    /**
+     * @return 'forecast'|'forecast_unavailable'|'rate_limited'
+     */
+    private function analyticsScreen(ForecastStatus $status): string
+    {
+        return match ($status) {
+            ForecastStatus::Fresh, ForecastStatus::Stale => 'forecast',
+            ForecastStatus::Unavailable => 'forecast_unavailable',
+            ForecastStatus::RateLimited => 'rate_limited',
+        };
+    }
+
+    /**
+     * @return array{lat: string, lon: string}
+     */
+    private function analyticsQuery(MarineForecastResult $result): array
+    {
+        // 画面に出している地点の書式と食い違わせないため、お気に入りに保存する地点と同じ値から作る。
+        // 入力文字列・updated・ignored は含めない
+        $target = $this->favoriteTarget($result);
+
+        return ['lat' => $target['latitude'], 'lon' => $target['longitude']];
     }
 
     private function inputNotice(CoordinateQuery $query): ?string

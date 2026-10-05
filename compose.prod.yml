@@ -37,6 +37,9 @@ services:
       # 未設定ならフッターにリンクを出さないので、用意する前にデプロイしても導線は出ない
       FEEDBACK_FORM_URL: ${FEEDBACK_FORM_URL:-}
       FEEDBACK_FORM_PREFILL_FIELD: ${FEEDBACK_FORM_PREFILL_FIELD:-}
+      # アクセス解析の測定 ID。:? にしないのは、測定 ID の発行とデプロイを切り離すため。
+      # 未設定なら何も読み込まないので、発行する前にデプロイしても外部へ送信しない
+      GA_MEASUREMENT_ID: ${GA_MEASUREMENT_ID:-}
     volumes:
       # 予報のキャッシュと取得回数制限のカウンター（var/share/pools）。
       # ボリュームにしないと、デプロイのたびに消えて取得失敗時の代替表示ができなくなる

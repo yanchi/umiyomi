@@ -53,7 +53,7 @@ JavaScript は追加しない。
    地点と入力の文字列が両方来たら地点を優先する。不正な値はエラーにせず黙って捨てる。署名付きのリンクにはしない
 4. **Security / プライバシー**（research R7）：フォームを開くリンクは `target="_blank" rel="noopener noreferrer"`、案内画面に `<meta name="referrer" content="no-referrer">` と `noindex`。
    サイト全体の `Referrer-Policy` は変えない
-5. **戻るリンク**（research R6）：受け付けなかった入力から来たときは、入力した文字列で `/forecast` を開き直す（同じ 422 の画面。100 文字を超えていた入力は切り詰めた文字列になる）
+5. **戻るリンク**（research R6）：受け付けなかった入力から来たときは、入力した文字列で `/forecast` を開き直す（通常は同じ 422 の画面。100 文字を超えていた入力は切り詰めた文字列になり、別の画面になることがある。research R6 の Note）
 6. **画面構成と文言**（contracts/web-ui.md）：フッターのリンクは Open-Meteo の表記と別の行で高さ 44px 以上。案内画面の 3 つの案内の文言、「返信用の連絡先の記入は任意です」の表示
 7. **本番の設定**（research R9）：環境変数は任意（未設定でもデプロイできる）。`verify-prod.sh` に未設定時の確認を 1 つ足す
 

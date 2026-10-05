@@ -249,7 +249,7 @@ description: "Task list for 003-coordinate-input-support"
 - [X] T049 [P] `backend/src/Presentation/Web/Input/` の新規クラス・`CoordinateQueryParser` のコメントを見直し、「何をしているか」だけのコメントを削り、「なぜ」（Presentation に置く理由・整数で丸める理由・方角の文字の有無をそろえる理由など）が残っていることを確認する
 - [X] T050 `docker compose exec php composer check` を通す（cs:fix・PHPStan level max・deptrac・lint:symfony・composer:lint・PHPUnit・`node --test`）。Deptrac の違反があれば設定を緩めず依存の向きを直す
 - [X] T051 `bash scripts/verify-prod.sh` で本番用イメージを起動し、`/forecast?lat=27%C2%B045.0%27N&lon=129%C2%B003.0%27E` が 303 で十進数の URL になり、アセット（`coordinate-input/*.js`）が配信されることを確かめる
-- [ ] T052 quickstart.md の「ブラウザでの確認」（US1〜US4・360px 幅）を http://localhost:8000 で実施し、iPhone での確認（文字のキーボード・スマート句読点・自動修正なし・Geolocation）は本番（HTTPS）デプロイ後に人間が行う項目として PR の説明に残す
+- [X] T052 quickstart.md の「ブラウザでの確認」（US1〜US4・360px 幅）を http://localhost:8000 で実施し、iPhone での確認（文字のキーボード・スマート句読点・自動修正なし・Geolocation）は本番（HTTPS）デプロイ後に人間が行う項目として PR の説明に残す
 
 ---
 

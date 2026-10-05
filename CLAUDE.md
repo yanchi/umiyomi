@@ -47,6 +47,7 @@ docker compose exec php composer composer:lint    # composer.json の検証 + �
 docker compose exec php composer test             # PHPUnit（unit + functional。外部APIは呼ばない）
 docker compose exec php composer test:js          # JavaScript のテスト（node --test。お気に入りの規則など。composer check にも含まれる）
 docker compose exec php composer test:external    # 実際の外部APIを呼ぶテスト（明示的に実行するときだけ）
+docker compose --profile e2e run --rm --build e2e   # ブラウザテスト（Playwright。e2e/ 配下。test 環境の app-e2e を相手にするので外部APIは呼ばない）
 docker compose exec php vendor/bin/phpunit --filter <テスト名>   # 単体のテストを実行
 docker compose exec php bin/console <command>     # Symfony コンソール
 docker compose exec php composer require <pkg>    # パッケージ追加（Flex レシピに設定を任せる）

@@ -8,6 +8,37 @@ services:
       - caddy_data:/data
       - caddy_config:/config
 
+  # ブラウザテスト（Playwright）用。test 環境なので Fake Provider・固定時計になり、外部 API を呼ばない。
+  # debug を付けるのは、AssetMapper がビルドなしでアセットを返せるようにするため。
+  # 実行：docker compose --profile e2e run --rm --build e2e
+  app-e2e:
+    profiles: [e2e]
+    build: ./backend
+    environment:
+      APP_ENV: test
+      APP_DEBUG: "1"
+    volumes:
+      - ./backend:/app
+      - caddy_data:/data
+      - caddy_config:/config
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost/"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  e2e:
+    profiles: [e2e]
+    build: ./e2e
+    depends_on:
+      app-e2e:
+        condition: service_healthy
+    environment:
+      E2E_BASE_URL: http://app-e2e
+    volumes:
+      - ./e2e/tests:/e2e/tests
+      - ./e2e/playwright.config.js:/e2e/playwright.config.js
+
 volumes:
   caddy_data:
   caddy_config:

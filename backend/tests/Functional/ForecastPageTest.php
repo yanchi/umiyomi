@@ -60,7 +60,7 @@ final class ForecastPageTest extends WebTestCase
         self::assertCount(9, $crawler->filter('table tbody tr'));
         self::assertSelectorTextContains('table tbody tr th', '風速 (m/s)');
         self::assertSelectorTextContains('footer', 'Weather data by Open-Meteo.com');
-        self::assertSame('https://open-meteo.com/', $crawler->filter('footer a')->attr('href'));
+        self::assertSame('https://open-meteo.com/', $crawler->filter('footer a:not(.site-footer__feedback)')->attr('href'));
     }
 
     public function testSameLocationIsFetchedOnlyOnce(): void

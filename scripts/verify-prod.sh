@@ -165,6 +165,10 @@ section '2. 画面とアセット'
 HOME_HTML="$(curl -s "$BASE/")"
 ok 'トップ /' "$(http_code "$BASE/")" '200'
 ok '存在しないページは 404' "$(http_code "$BASE/nope")" '404'
+# フィードバックのフォームは未設定で起動するので、リンクを出さず /feedback も 404（004）
+ok 'フォーム未設定ではフッターにフィードバックのリンクがない' \
+   "$(printf '%s' "$HOME_HTML" | grep -q 'site-footer__feedback' && echo あり || echo なし)" 'なし'
+ok 'フォーム未設定では /feedback が 404' "$(http_code "$BASE/feedback")" '404'
 ok '.env は配信しない' \
    "$([ "$(http_code "$BASE/.env")" != '200' ] && echo 配信しない || echo 配信される)" '配信しない'
 ok 'プロファイラが無い' "$(http_code "$BASE/_profiler")" '404'

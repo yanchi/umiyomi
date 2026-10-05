@@ -1,0 +1,54 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}フィードバック | UMIYOMI{% endblock %}
+
+{# 案内画面のアドレスには地点や入力の文字列が入りうるので、外部へ Referer を渡さず、検索エンジンにも載せない #}
+{% block head_meta %}
+    <meta name="referrer" content="no-referrer">
+    <meta name="robots" content="noindex">
+{% endblock %}
+
+{# この画面自身へのリンクになるため出さない #}
+{% block footer_feedback %}{% endblock %}
+
+{% block body %}
+    <header class="page-header">
+        <p class="site-title"><a href="{{ path('app_home') }}">UMIYOMI</a></p>
+    </header>
+    <h1 class="feedback-title">フィードバック</h1>
+    <p class="lead">不具合・要望・予報の値についての気づきなどを、外部のフォームで受け付けています。</p>
+
+    <section class="feedback-notes" aria-labelledby="feedback-notes-title">
+        <h2 id="feedback-notes-title">送る前にご確認ください</h2>
+        <ul>
+            <li>返信や対応をお約束するものではありません。</li>
+            <li>海上での事件・事故の緊急通報は、海上保安庁（118 番）へ連絡してください。このフォームでは受け付けていません。</li>
+            <li>出航の判断には、気象庁などが発表する警報・注意報もあわせて確認してください。</li>
+        </ul>
+    </section>
+
+    {% if page.prefillSummary %}
+        <p class="feedback-prefill">{{ page.prefillSummary }}</p>
+    {% endif %}
+    {% if page.quotedInputs %}
+        <div class="feedback-prefill">
+            <p>受け付けられなかった次の入力がフォームに入ります。</p>
+            <h2 class="feedback-quote-title">緯度欄に入力した文字列</h2>
+            <blockquote class="feedback-quote">{{ page.quotedInputs.latitude }}</blockquote>
+            <h2 class="feedback-quote-title">経度欄に入力した文字列</h2>
+            <blockquote class="feedback-quote">{{ page.quotedInputs.longitude }}</blockquote>
+        </div>
+    {% endif %}
+    {% if page.prefillSummary or page.quotedInputs %}
+        <p>送る前にフォームで確認でき、送りたくない場合は消せます。</p>
+    {% endif %}
+
+    <p>
+        <a class="feedback-open" href="{{ page.formUrl }}" target="_blank" rel="noopener noreferrer">フィードバックのフォームを開く（新しいタブ）</a>
+    </p>
+    <p class="feedback-contact-note">返信用の連絡先の記入は任意です。</p>
+
+    <p>
+        <a class="feedback-back" href="{{ path(page.backRoute, page.backParameters) }}">← {{ page.backLabel }}</a>
+    </p>
+{% endblock %}

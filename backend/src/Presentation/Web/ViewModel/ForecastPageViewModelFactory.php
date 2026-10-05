@@ -10,6 +10,7 @@ use App\Application\Marine\DTO\HourlyForecastView;
 use App\Application\Marine\DTO\MarineForecastResult;
 use App\Application\Marine\DTO\MarineForecastView;
 use App\Presentation\Web\Input\CoordinateQuery;
+use App\Presentation\Web\Input\FeedbackContextParser;
 
 /**
  * 方位の日本語名・日時の書式・行ラベル・数値の書式・欠損の表示など、見せ方の決定をここに集める.
@@ -36,14 +37,20 @@ final readonly class ForecastPageViewModelFactory
 
     public function createForInvalidInput(CoordinateQuery $query): ForecastPageViewModel
     {
-        return new ForecastPageViewModel($this->form($query, null), null, null, null, [], null, null);
+        // 受け付けなかった入力を案内画面に伝える。長い入力で URL が膨らまないよう、案内画面が読む長さに合わせて切る
+        $feedbackQuery = [
+            'input_lat' => mb_substr($query->rawLatitude, 0, FeedbackContextParser::MAX_INPUT_LENGTH),
+            'input_lon' => mb_substr($query->rawLongitude, 0, FeedbackContextParser::MAX_INPUT_LENGTH),
+        ];
+
+        return new ForecastPageViewModel($this->form($query, null), null, null, null, [], null, null, null, $feedbackQuery);
     }
 
     public function create(CoordinateQuery $query, MarineForecastResult $result): ForecastPageViewModel
     {
         $forecast = $result->forecast;
         if (null === $forecast) {
-            return new ForecastPageViewModel($this->form($query, null), $this->notice($result->status, null), null, null, [], null, $this->favoriteTarget($result), $this->inputNotice($query));
+            return new ForecastPageViewModel($this->form($query, null), $this->notice($result->status, null), null, null, [], null, $this->favoriteTarget($result), $this->inputNotice($query), $this->feedbackQuery($result));
         }
 
         $isStale = ForecastStatus::Stale === $result->status;
@@ -57,6 +64,7 @@ final readonly class ForecastPageViewModelFactory
             table: $this->table($forecast),
             favoriteTarget: $this->favoriteTarget($result),
             inputNotice: $this->inputNotice($query),
+            feedbackQuery: $this->feedbackQuery($result),
         );
     }
 
@@ -141,6 +149,19 @@ final readonly class ForecastPageViewModelFactory
             'longitude' => \sprintf('%.2f', $result->longitude + 0.0),
             'label' => self::formatLocation($result->latitude, $result->longitude),
         ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function feedbackQuery(MarineForecastResult $result): array
+    {
+        $target = $this->favoriteTarget($result);
+
+        // 地点の書式を画面に出している値と食い違わせないため、お気に入りに保存する地点と同じ値から作る。
+        // 最終更新は「最終更新：」の表示と同じ日時で、予報がない（取得失敗・回数制限）ときは付けない
+        return ['lat' => $target['latitude'], 'lon' => $target['longitude']]
+            + (null === $result->forecast ? [] : ['updated' => $result->forecast->fetchedAt->format('Y/m/d H:i')]);
     }
 
     private function location(MarineForecastView $forecast): string

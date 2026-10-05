@@ -5,7 +5,9 @@
  * which should already be in your base.html.twig.
  */
 import './styles/app.css';
+import { initCoordinateInput } from './coordinate-input/coordinate-input-ui.js';
 import { initFavorites } from './favorites/favorites-ui.js';
 
 // ES Module は defer 相当で実行されるため、DOMContentLoaded を待たなくても本文は読み込み済み
 initFavorites(document);
+initCoordinateInput(document);

@@ -120,6 +120,68 @@ body {
     color: var(--color-muted);
 }
 
+/* 現在地。ボタンとメッセージは長い文言でも 360px 幅で折り返し、横にはみ出さないようにする */
+.current-location {
+    display: flex;
+    flex-basis: 100%;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.coordinate-form .current-location button {
+    align-self: flex-start;
+    max-width: 100%;
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    color: var(--color-text);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border-strong);
+}
+
+.coordinate-form .current-location button:disabled {
+    color: var(--color-muted);
+    cursor: progress;
+}
+
+.current-location-message {
+    margin: 0;
+    font-size: 0.875rem;
+}
+
+.current-location-note {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--color-muted);
+}
+
+/* 食い違いの案内は注意を引くが、エラーではないので警告の色にする */
+.stale-notice {
+    flex-basis: 100%;
+    margin: 0;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    overflow-wrap: anywhere;
+    background: var(--color-warning-bg);
+    border-left: 0.375rem solid var(--color-warning-border);
+}
+
+.form-hint {
+    overflow-wrap: anywhere;
+}
+
+/* 1 行の「緯度, 経度」から読み取り、もう一方の欄を使わなかったことの通知 */
+.input-notice {
+    margin: 0.75rem 0;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    overflow-wrap: anywhere;
+    background: var(--color-warning-bg);
+    border-left: 0.375rem solid var(--color-warning-border);
+}
+
 /* 警告・メッセージ。一覧より先に目に入るよう、背景色と太い左線で目立たせる */
 .notice {
     margin: 1rem 0;
@@ -329,6 +391,12 @@ body {
 
 .favorites-saved {
     margin: 0;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.favorites-target {
+    margin: 0 0 0.75rem;
     font-weight: 600;
     overflow-wrap: anywhere;
 }

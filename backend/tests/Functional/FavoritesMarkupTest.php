@@ -67,7 +67,9 @@ final class FavoritesMarkupTest extends WebTestCase
 
     public function testForecastPageShowsSwitchListBetweenFormAndForecast(): void
     {
-        $crawler = $this->client->request('GET', '/forecast?lat=27.7549&lon=129.0501');
+        // 丸める前の値で開き、リダイレクト先（正規形の URL）の予報画面を確かめる
+        $this->client->request('GET', '/forecast?lat=27.7549&lon=129.0501');
+        $crawler = $this->client->followRedirect();
 
         self::assertResponseStatusCodeSame(200);
         $details = $crawler->filter('details.favorites-switch');
@@ -87,7 +89,9 @@ final class FavoritesMarkupTest extends WebTestCase
 
     public function testForecastPageShowsSavePanelAfterLocation(): void
     {
-        $crawler = $this->client->request('GET', '/forecast?lat=27.7549&lon=129.0501');
+        // 丸める前の値で開き、リダイレクト先（正規形の URL）の予報画面を確かめる
+        $this->client->request('GET', '/forecast?lat=27.7549&lon=129.0501');
+        $crawler = $this->client->followRedirect();
 
         $panel = $crawler->filter('[data-favorites="save-panel"][data-latitude="27.75"][data-longitude="129.05"]');
         self::assertCount(1, $panel);

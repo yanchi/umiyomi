@@ -1,0 +1,24 @@
+{# 表示中の地点の座標は、サーバーで丸めた値を data 属性で渡す。JavaScript は丸め直さない（research R2） #}
+<section class="favorites-save" data-favorites="save-panel" data-latitude="{{ target.latitude }}" data-longitude="{{ target.longitude }}" data-confirm-remove="『{name}』をお気に入りから削除しますか？">
+    <div data-favorites-state="unsaved" hidden>
+        <form class="favorites-save-form" novalidate>
+            <div class="field">
+                <label for="favorite-name">名前（省略可・30 文字以内）</label>
+                <input id="favorite-name" name="favorite-name" type="text" autocomplete="off" placeholder="例：{{ target.latitude }}, {{ target.longitude }}" aria-describedby="favorite-name-error">
+                <p id="favorite-name-error" class="field-error" data-favorites-message="name_too_long" hidden>名前は 30 文字以内で入力してください</p>
+            </div>
+            <button type="submit">お気に入りに保存</button>
+        </form>
+    </div>
+    <div class="favorites-saved" data-favorites-state="saved" hidden>
+        <p>お気に入りに保存済み：<span data-favorites-field="name"></span></p>
+        <button type="button" data-favorites-action="remove">お気に入りから外す</button>
+    </div>
+    <div role="status">
+        <p class="favorites-message" data-favorites-message="saved" hidden>お気に入りに保存しました</p>
+        <p class="favorites-message" data-favorites-message="removed" hidden>お気に入りから削除しました</p>
+        <p class="favorites-message" data-favorites-message="limit" hidden>お気に入りは 20 件まで保存できます。トップ画面の一覧で不要なお気に入りを削除してから保存してください</p>
+        <p class="favorites-message" data-favorites-message="write_failed" hidden>お気に入りを保存できませんでした。ブラウザの設定や空き容量を確認してください</p>
+    </div>
+    {{ include('favorites/_notes.html.twig', {show_storage_note: false}) }}
+</section>

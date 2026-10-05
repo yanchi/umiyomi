@@ -233,6 +233,51 @@ final class ViewMarineForecastTest extends TestCase
         self::assertNull($result->forecast);
     }
 
+    public function testFreshResultCarriesRoundedCoordinate(): void
+    {
+        $result = $this->view(27.7549, 129.0501);
+
+        self::assertSame(ForecastStatus::Fresh, $result->status);
+        self::assertSame(27.75, $result->latitude);
+        self::assertSame(129.05, $result->longitude);
+    }
+
+    public function testStaleResultCarriesRoundedCoordinate(): void
+    {
+        $this->view(27.7549, 129.0501);
+        $this->clock->advance('+3 hours');
+        $this->provider->willFail();
+
+        $result = $this->view(27.7549, 129.0501);
+
+        self::assertSame(ForecastStatus::Stale, $result->status);
+        self::assertSame(27.75, $result->latitude);
+        self::assertSame(129.05, $result->longitude);
+    }
+
+    // 予報がない結果でも、保存パネルに表示中の地点を渡すために座標が要る
+    public function testUnavailableResultCarriesRoundedCoordinate(): void
+    {
+        $this->provider->willFail();
+
+        $result = $this->view(27.7549, 129.0501);
+
+        self::assertSame(ForecastStatus::Unavailable, $result->status);
+        self::assertSame(27.75, $result->latitude);
+        self::assertSame(129.05, $result->longitude);
+    }
+
+    public function testRateLimitedResultCarriesRoundedCoordinate(): void
+    {
+        $this->rateLimiter->exceed();
+
+        $result = $this->view(27.7549, 129.0501);
+
+        self::assertSame(ForecastStatus::RateLimited, $result->status);
+        self::assertSame(27.75, $result->latitude);
+        self::assertSame(129.05, $result->longitude);
+    }
+
     private function view(float $latitude = 27.75, float $longitude = 129.05, string $clientKey = '192.0.2.1'): MarineForecastResult
     {
         return $this->useCase->execute(new ViewMarineForecastInput($latitude, $longitude, $clientKey));

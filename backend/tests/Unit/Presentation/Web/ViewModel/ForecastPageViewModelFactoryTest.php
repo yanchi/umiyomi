@@ -143,7 +143,7 @@ final class ForecastPageViewModelFactoryTest extends TestCase
 
     public function testUnavailablePage(): void
     {
-        $viewModel = $this->factory->create($this->query, MarineForecastResult::unavailable());
+        $viewModel = $this->factory->create($this->query, MarineForecastResult::unavailable(27.75, 129.05));
 
         self::assertSame(['type' => 'unavailable', 'message' => '予報を取得できませんでした。時間をおいて再度お試しください'], $viewModel->notice);
         self::assertNull($viewModel->location);
@@ -154,7 +154,7 @@ final class ForecastPageViewModelFactoryTest extends TestCase
 
     public function testRateLimitedPage(): void
     {
-        $viewModel = $this->factory->create($this->query, MarineForecastResult::rateLimited());
+        $viewModel = $this->factory->create($this->query, MarineForecastResult::rateLimited(27.75, 129.05));
 
         self::assertSame(['type' => 'rate_limited', 'message' => 'しばらく待ってから再度お試しください'], $viewModel->notice);
         self::assertNull($viewModel->location);
@@ -190,6 +190,39 @@ final class ForecastPageViewModelFactoryTest extends TestCase
         self::assertSame($expectedRows, array_column($viewModel->table->rows, 'label'));
     }
 
+    /**
+     * @return iterable<string, array{MarineForecastResult, string, string}>
+     */
+    public static function favoriteTargetProvider(): iterable
+    {
+        $forecast = static fn (float $latitude, float $longitude): MarineForecastView => new MarineForecastView(
+            $latitude,
+            $longitude,
+            new \DateTimeImmutable('2026-10-05T20:15:00+09:00'),
+            new \DateTimeImmutable('2026-10-05T21:15:00+09:00'),
+            GroupAvailability::Available,
+            GroupAvailability::Available,
+            [],
+        );
+
+        yield 'fresh' => [MarineForecastResult::fresh($forecast(27.75, 129.05)), '27.75', '129.05'];
+        yield 'stale' => [MarineForecastResult::stale($forecast(27.75, 129.05)), '27.75', '129.05'];
+        yield 'unavailable' => [MarineForecastResult::unavailable(27.75, 129.05), '27.75', '129.05'];
+        yield 'rate limited' => [MarineForecastResult::rateLimited(27.75, 129.05), '27.75', '129.05'];
+        yield 'pads decimals' => [MarineForecastResult::unavailable(28.1, 129.3), '28.10', '129.30'];
+        yield 'negative' => [MarineForecastResult::unavailable(-0.5, -120.0), '-0.50', '-120.00'];
+        // 丸めた結果が -0.0 になる座標を「-0.00」と表示しない
+        yield 'negative zero' => [MarineForecastResult::unavailable(-0.0, 129.05), '0.00', '129.05'];
+    }
+
+    #[DataProvider('favoriteTargetProvider')]
+    public function testFavoriteTarget(MarineForecastResult $result, string $latitude, string $longitude): void
+    {
+        $viewModel = $this->factory->create($this->query, $result);
+
+        self::assertSame(['latitude' => $latitude, 'longitude' => $longitude], $viewModel->favoriteTarget);
+    }
+
     public function testInvalidInputPage(): void
     {
         $query = new CoordinateQueryParser()->parse('95', 'abc');
@@ -207,6 +240,7 @@ final class ForecastPageViewModelFactoryTest extends TestCase
         self::assertNull($viewModel->lastUpdated);
         self::assertSame([], $viewModel->groupMessages);
         self::assertNull($viewModel->table);
+        self::assertNull($viewModel->favoriteTarget);
     }
 
     private function table(?MarineForecastView $forecast = null): ForecastTable

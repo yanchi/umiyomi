@@ -7,6 +7,7 @@
         <h1 class="site-title"><a href="{{ path('app_home') }}">UMIYOMI</a></h1>
     </header>
     {{ include('forecast/_form.html.twig', {form: page.form}) }}
+    {{ include('favorites/_switch_list.html.twig') }}
 
     {# 古い予報や取得できなかったことを見落とさないよう、地点・一覧より前に置く #}
     {% if page.notice %}
@@ -18,6 +19,11 @@
     {% endif %}
     {% if page.lastUpdated %}
         <p class="last-updated">{{ page.lastUpdated }}</p>
+    {% endif %}
+
+    {# 取得失敗・回数制限でも保存できるよう予報の有無に関わらず出す。入力エラーのときは地点が決まらないので出さない #}
+    {% if page.favoriteTarget %}
+        {{ include('favorites/_save_panel.html.twig', {target: page.favoriteTarget}) }}
     {% endif %}
 
     <p class="disclaimer">この予報は航海の安全を保証するものではありません。出航前に気象庁などが発表する警報・注意報もあわせて確認してください。</p>

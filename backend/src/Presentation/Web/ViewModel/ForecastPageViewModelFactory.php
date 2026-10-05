@@ -18,6 +18,7 @@ use App\Presentation\Web\Input\CoordinateQuery;
  * @phpstan-import-type Row from ForecastTable
  * @phpstan-import-type Form from ForecastPageViewModel
  * @phpstan-import-type Notice from ForecastPageViewModel
+ * @phpstan-import-type FavoriteTarget from ForecastPageViewModel
  */
 final readonly class ForecastPageViewModelFactory
 {
@@ -35,14 +36,14 @@ final readonly class ForecastPageViewModelFactory
 
     public function createForInvalidInput(CoordinateQuery $query): ForecastPageViewModel
     {
-        return new ForecastPageViewModel($this->form($query), null, null, null, [], null);
+        return new ForecastPageViewModel($this->form($query), null, null, null, [], null, null);
     }
 
     public function create(CoordinateQuery $query, MarineForecastResult $result): ForecastPageViewModel
     {
         $forecast = $result->forecast;
         if (null === $forecast) {
-            return new ForecastPageViewModel($this->form($query), $this->notice($result->status, null), null, null, [], null);
+            return new ForecastPageViewModel($this->form($query), $this->notice($result->status, null), null, null, [], null, $this->favoriteTarget($result));
         }
 
         $isStale = ForecastStatus::Stale === $result->status;
@@ -54,6 +55,7 @@ final readonly class ForecastPageViewModelFactory
             lastUpdated: $this->lastUpdated($forecast, $isStale),
             groupMessages: $this->groupMessages($forecast),
             table: $this->table($forecast),
+            favoriteTarget: $this->favoriteTarget($result),
         );
     }
 
@@ -103,6 +105,18 @@ final readonly class ForecastPageViewModelFactory
             'longitude' => $query->rawLongitude,
             'latitudeError' => $query->errors['latitude'] ?? null,
             'longitudeError' => $query->errors['longitude'] ?? null,
+        ];
+    }
+
+    /**
+     * @return FavoriteTarget
+     */
+    private function favoriteTarget(MarineForecastResult $result): array
+    {
+        // -0.0 を足し算で 0.0 にして、丸めた結果が -0.0 の座標を「-0.00」と書式化しない
+        return [
+            'latitude' => \sprintf('%.2f', $result->latitude + 0.0),
+            'longitude' => \sprintf('%.2f', $result->longitude + 0.0),
         ];
     }
 

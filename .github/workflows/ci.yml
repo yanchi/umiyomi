@@ -36,6 +36,12 @@ jobs:
           extensions: intl, zip, apcu
           coverage: none
 
+      # JavaScript のテスト（node --test）を動かすためだけに使う。backend/Dockerfile の nodejs（20.x）と揃える
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '20'
+
       - name: Install Composer dependencies
         run: composer install --no-interaction --no-progress --prefer-dist
 
@@ -59,6 +65,9 @@ jobs:
       # 外部APIは呼ばない（unit + functional のみ）。実APIは external-api.yml で確認する
       - name: PHPUnit
         run: composer test
+
+      - name: JavaScript tests (node --test)
+        run: composer test:js
 
   # 依存パッケージの既知の脆弱性。新しい脆弱性は Dependabot（.github/dependabot.yml）でも知らせる
   audit:

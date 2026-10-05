@@ -45,6 +45,7 @@ docker compose exec php composer deptrac          # レイヤー間の依存方�
 docker compose exec php composer lint:symfony     # YAML / Twig / DI コンテナの lint
 docker compose exec php composer composer:lint    # composer.json の検証 + 脆弱性チェック（composer audit）
 docker compose exec php composer test             # PHPUnit（unit + functional。外部APIは呼ばない）
+docker compose exec php composer test:js          # JavaScript のテスト（node --test。お気に入りの規則など。composer check にも含まれる）
 docker compose exec php composer test:external    # 実際の外部APIを呼ぶテスト（明示的に実行するときだけ）
 docker compose exec php vendor/bin/phpunit --filter <テスト名>   # 単体のテストを実行
 docker compose exec php bin/console <command>     # Symfony コンソール
@@ -54,7 +55,7 @@ bash scripts/verify-prod.sh                       # 本番用イメージを com
 
 CI/CD は `.github/workflows/`。master への push でさくら VPS にデプロイされる（手順・初回設定・ロールバックは [deploy/README.md](deploy/README.md)）。
 
-テストの置き場所：`backend/tests/Unit`、`backend/tests/Functional`、`backend/tests/External`（実API）。
+テストの置き場所：`backend/tests/Unit`、`backend/tests/Functional`、`backend/tests/JavaScript`（`node --test`）、`backend/tests/External`（実API）。
 
 `backend/` 配下の PHP / Twig を Write・Edit すると、PostToolUse フック（[.claude/hooks/format-backend.sh](.claude/hooks/format-backend.sh)）が自動で整形する（コンテナ起動中のみ）。Deptrac の違反は設定を緩めて回避せず、依存の向きを直す。ルールの変更は人間のレビュー対象。
 
@@ -109,6 +110,8 @@ Domain設計 / Repository境界 / 画面・URL設計（将来はAPI Contract） 
 ## Active Technologies
 - PHP 8.4（FrankenPHP、Docker） + Symfony 8.1（FrameworkBundle、TwigBundle、HttpClient、Cache、AssetMapper）。追加：`symfony/clock`、`symfony/rate-limiter` (001-marine-forecast-view)
 - なし（DB は導入しない）。予報と回数制限のカウンターは Symfony Cache（dev/prod はファイルシステム、test は in-memory。複数台構成時は Redis） (001-marine-forecast-view)
+- PHP 8.4（FrankenPHP、Docker）、JavaScript（ES2022 の ES Module。ビルドなし） + 既存の Symfony 8.1（TwigBundle、AssetMapper）。新しい Composer / npm パッケージは追加しない。開発用イメージと CI に Node.js 20（テスト実行のみ） (002-favorite-locations)
+- ブラウザの localStorage（キー `umiyomi.favorites`、JSON 1 件）。サーバー側の保存なし (002-favorite-locations)
 
 ## Recent Changes
 - 001-marine-forecast-view: Added PHP 8.4（FrankenPHP、Docker） + Symfony 8.1（FrameworkBundle、TwigBundle、HttpClient、Cache、AssetMapper）。追加：`symfony/clock`、`symfony/rate-limiter`

@@ -10,6 +10,7 @@ use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\DomCrawler\Crawler;
+use Symfony\Component\Filesystem\Filesystem;
 
 /**
  * 全画面の <head>（アイコン・OG・説明文・robots）の検査。
@@ -27,6 +28,13 @@ final class HeadMetaTest extends WebTestCase
     private const array ASSERTIVE_PHRASES = ['安全です', '出航できます', '問題ありません'];
 
     private KernelBrowser $client;
+
+    // debug を切ったカーネルは Twig・設定のキャッシュが古くなっても作り直さない。
+    // ローカルで cache:clear せずに再実行しても、変更後のテンプレートを検査するよう、クラスの開始時に消す
+    public static function setUpBeforeClass(): void
+    {
+        (new Filesystem())->remove(\dirname(__DIR__, 2).'/var/cache/test');
+    }
 
     protected function setUp(): void
     {

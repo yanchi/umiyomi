@@ -114,6 +114,8 @@ Domain設計 / Repository境界 / 画面・URL設計（将来はAPI Contract） 
 - ブラウザの localStorage（キー `umiyomi.favorites`、JSON 1 件）。サーバー側の保存なし (002-favorite-locations)
 - PHP 8.4（FrankenPHP、Docker）、JavaScript（ES2022 の ES Module。ビルドなし） + 既存の Symfony 8.1（FrameworkBundle、TwigBundle、AssetMapper）。新しい Composer / npm パッケージ・PHP 拡張は追加しない (003-coordinate-input-support)
 - なし（入力文字列・現在地は保存しない。localStorage の形式（002）も変えない） (003-coordinate-input-support)
+- PHP 8.4（FrankenPHP、Docker） + 既存の Symfony 8.1（FrameworkBundle、TwigBundle、AssetMapper）。新しい Composer / npm パッケージ・PHP 拡張は追加しない (004-feedback-channel)
+- なし（フィードバックの内容・文脈は保存しない。localStorage の形式（002）も変えない） (004-feedback-channel)
 
 ## Recent Changes
 - 001-marine-forecast-view: Added PHP 8.4（FrankenPHP、Docker） + Symfony 8.1（FrameworkBundle、TwigBundle、HttpClient、Cache、AssetMapper）。追加：`symfony/clock`、`symfony/rate-limiter`

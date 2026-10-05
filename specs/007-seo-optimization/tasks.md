@@ -169,7 +169,7 @@ Search Console・リッチリザルトテストでの確認（SC-001〜SC-004）
 
 ### Implementation for User Story 4
 
-- [ ] T023 [US4] `deploy/README.md` の「公開するとき」の節を「検索エンジンへの公開」に置き換える（FR-013、quickstart「公開の操作」、research R8・R10）。README の書き換えはこのタスクにまとめる（nginx の反映は運営者がマージ後に行うので、US1 の時点で README だけ公開後の書き方にしない）。次を含める：
+- [X] T023 [US4] `deploy/README.md` の「公開するとき」の節を「検索エンジンへの公開」に置き換える（FR-013、quickstart「公開の操作」、research R8・R10）。README の書き換えはこのタスクにまとめる（nginx の反映は運営者がマージ後に行うので、US1 の時点で README だけ公開後の書き方にしない）。次を含める：
   - 冒頭（「公開するまでは vhost が `X-Robots-Tag: noindex, nofollow` を付けて…」）と「DNS と nginx」の手順 5（noindex が付いていることを確かめる）を、公開後の状態（トップだけ登録対象・他の画面はアプリの `noindex`。nginx はチャレンジのパスにだけ `noindex`）に合わせて改め、「検索エンジンへの公開」の節への参照にする
   - 前提：007 が master にマージ・デプロイされていること（`curl -s https://umiyomi.isl-mentor.com/robots.txt` が `Sitemap:` を返す）。デプロイ前に nginx を変えても、トップが登録可能になり robots.txt が 404 になるだけで他の画面は `noindex` のまま（data-model「状態の遷移」）
   - 反映前の確認（`X-Robots-Tag: noindex, nofollow` が付いている）
@@ -181,7 +181,7 @@ Search Console・リッチリザルトテストでの確認（SC-001〜SC-004）
   - Bing Webmaster Tools は任意で、Search Console からインポートできる旨を 1 行
   - 元に戻すとき（server に `add_header X-Robots-Tag "noindex, nofollow" always;` を戻して reload。急ぐときは Search Console の「削除」）
   - 既存の「共有プレビュー（OG）は `X-Robots-Tag` があっても機能する」旨の記述は、公開後の状態に合わない部分を整理する
-- [ ] T024 [US4] `deploy/README.md` 全体と `deploy/nginx/umiyomi.conf` の冒頭コメントを読み直し、「公開するまで」「公開するとき」を前提にした記述が残っていないこと、T023 の内容と矛盾しないことを確かめる（FR-013）
+- [X] T024 [US4] `deploy/README.md` 全体と `deploy/nginx/umiyomi.conf` の冒頭コメントを読み直し、「公開するまで」「公開するとき」を前提にした記述が残っていないこと、T023 の内容と矛盾しないことを確かめる（FR-013）
 
 **Checkpoint**: 手順書だけで公開と効果測定の準備ができる
 
@@ -191,9 +191,9 @@ Search Console・リッチリザルトテストでの確認（SC-001〜SC-004）
 
 **Purpose**: 全体の整合と最終確認
 
-- [ ] T025 [P] `docker compose up -d` の開発環境で quickstart.md「手元での手動確認」を行う：`curl -i http://localhost:8000/robots.txt`・`/sitemap.xml`、`/?utm_source=test` の canonical・JSON-LD・robots、ブラウザの 375×667 で入力欄と「予報を表示」がスクロールなしで見えること、お気に入りの後に本文の 3 見出しが出ること、JavaScript を無効にしても本文が表示されること
-- [ ] T026 [P] `CLAUDE.md`・`docs/` などのドキュメントに「公開前は全画面 noindex」の前提の記述が残っていないか `grep -rn "X-Robots-Tag\|公開するまで\|公開するとき" --include='*.md' . | grep -v '^\./specs/'` で確かめ、残っていれば公開後の状態に合わせて直す。`specs/` 配下（005・006 など）は当時の判断の記録なので直さない
-- [ ] T027 最終確認：`docker compose exec php composer check`、`docker compose --profile e2e run --rm --build e2e`、`bash scripts/verify-prod.sh` がすべて通ることを確かめ、結果（成功・失敗の件数）を報告する
+- [X] T025 [P] `docker compose up -d` の開発環境で quickstart.md「手元での手動確認」を行う：`curl -i http://localhost:8000/robots.txt`・`/sitemap.xml`、`/?utm_source=test` の canonical・JSON-LD・robots、ブラウザの 375×667 で入力欄と「予報を表示」がスクロールなしで見えること、お気に入りの後に本文の 3 見出しが出ること、JavaScript を無効にしても本文が表示されること
+- [X] T026 [P] `CLAUDE.md`・`docs/` などのドキュメントに「公開前は全画面 noindex」の前提の記述が残っていないか `grep -rn "X-Robots-Tag\|公開するまで\|公開するとき" --include='*.md' . | grep -v '^\./specs/'` で確かめ、残っていれば公開後の状態に合わせて直す。`specs/` 配下（005・006 など）は当時の判断の記録なので直さない
+- [X] T027 最終確認：`docker compose exec php composer check`、`docker compose --profile e2e run --rm --build e2e`、`bash scripts/verify-prod.sh` がすべて通ることを確かめ、結果（成功・失敗の件数）を報告する
 
 ---
 

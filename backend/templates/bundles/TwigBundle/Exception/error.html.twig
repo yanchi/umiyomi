@@ -1,0 +1,12 @@
+{% extends 'base.html.twig' %}
+
+{# 例外メッセージや入力は共有用情報にも画面にも出さない #}
+{% block title %}エラー | UMIYOMI{% endblock %}
+
+{% block body %}
+    <header class="page-header">
+        <p class="site-title"><a href="{{ path('app_home') }}">UMIYOMI</a></p>
+    </header>
+    <h1>{{ status_code == 404 ? 'ページが見つかりません' : 'エラーが発生しました' }}</h1>
+    <p><a href="{{ path('app_home') }}">← トップへ戻る</a></p>
+{% endblock %}

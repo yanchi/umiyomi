@@ -2,10 +2,11 @@
 
 {% block title %}フィードバック | UMIYOMI{% endblock %}
 
-{# 案内画面のアドレスには地点や入力の文字列が入りうるので、外部へ Referer を渡さず、検索エンジンにも載せない #}
+{% block meta_description %}UMIYOMI へのご意見・ご要望の案内です。{% endblock %}
+
+{# 案内画面のアドレスには地点や入力の文字列が入りうるので、外部へ Referer を渡す経路を塞ぐ（検索エンジンへの非登録は base の robots が担う） #}
 {% block head_meta %}
     <meta name="referrer" content="no-referrer">
-    <meta name="robots" content="noindex">
 {% endblock %}
 
 {# この画面自身へのリンクになるため出さない #}

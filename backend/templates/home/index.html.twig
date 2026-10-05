@@ -1,5 +1,10 @@
 {% extends 'base.html.twig' %}
 
+{% block title %}UMIYOMI｜風・波・うねりの予報を出航前に確認{% endblock %}
+
+{# トップだけ検索エンジンへの登録を許可するため meta を出さない。本番の nginx の X-Robots-Tag が残る間は、それが優先されて登録されない #}
+{% block robots %}{% endblock %}
+
 {% block body %}
     <header class="page-header">
         <h1 class="site-title"><a href="{{ path('app_home') }}">UMIYOMI</a></h1>

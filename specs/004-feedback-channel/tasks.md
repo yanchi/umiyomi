@@ -197,7 +197,7 @@ description: "Task list for 004-feedback-channel"
 - [X] T039 [P] `backend/src/Presentation/Web/{Input,Feedback,ViewModel,Controller}/` の新規・変更クラスとテンプレートのコメントを見直し、「何をしているか」だけのコメントを削り、「なぜ」（Presentation に置く理由・正規形だけを受け付ける理由・`http_build_query` を使わない理由・Referer を渡さない理由など）が残っていることを確認する
 - [X] T040 `docker compose exec php composer check` を通す（cs:fix・PHPStan level max・deptrac・lint:symfony・composer:lint・PHPUnit・`node --test`）。Deptrac の違反があれば設定を緩めず依存の向きを直す
 - [X] T041 `bash scripts/verify-prod.sh` で本番用イメージを起動し、T038 の確認を含めてすべて通ることを確かめる
-- [ ] T042 quickstart.md の「ブラウザでの確認」1〜9 を `backend/.env.dev.local`（git に入れない）に試用のフォームを設定して http://localhost:8000 で実施する。実際のフォームの用意と設定の確認（種類が選べる（FR-006）・連絡先を空で送れる（FR-007）・ログインを求められない・送れたことが表示される）、本番の URL での確認、iPhone でのスマホ幅の確認は、人間が行う項目として PR の説明に残す
+- [x] T042 quickstart.md の「ブラウザでの確認」1〜9 を `backend/.env.dev.local`（git に入れない）に試用のフォームを設定して http://localhost:8000 で実施する。実際のフォームの用意と設定の確認（種類が選べる（FR-006）・連絡先を空で送れる（FR-007）・ログインを求められない・送れたことが表示される）、本番の URL での確認、iPhone でのスマホ幅の確認は、人間が行う項目として PR の説明に残す
 
 ---
 

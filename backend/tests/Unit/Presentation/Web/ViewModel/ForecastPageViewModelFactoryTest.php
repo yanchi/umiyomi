@@ -8,6 +8,7 @@ use App\Application\Marine\DTO\GroupAvailability;
 use App\Application\Marine\DTO\HourlyForecastView;
 use App\Application\Marine\DTO\MarineForecastResult;
 use App\Application\Marine\DTO\MarineForecastView;
+use App\Presentation\Web\Input\CoordinateNotationParser;
 use App\Presentation\Web\Input\CoordinateQuery;
 use App\Presentation\Web\Input\CoordinateQueryParser;
 use App\Presentation\Web\ViewModel\ForecastPageViewModelFactory;
@@ -21,20 +22,29 @@ final class ForecastPageViewModelFactoryTest extends TestCase
         '風速 (m/s)', '突風 (m/s)', '風向', '波高 (m)', '波向', '波周期 (秒)', 'うねり高さ (m)', 'うねり向き', 'うねり周期 (秒)',
     ];
 
+    // 入力欄が表示中の地点と異なるときの案内（FR-021）。表示中の地点を含める
+    private const string STALE_NOTICE = '入力欄の地点の予報はまだ表示していません。表示中の一覧は 北緯 27.75° / 東経 129.05° の予報です。「予報を表示」を押すと、入力欄の地点の予報に切り替わります。';
+
     private ForecastPageViewModelFactory $factory;
     private CoordinateQuery $query;
 
     protected function setUp(): void
     {
         $this->factory = new ForecastPageViewModelFactory();
-        $this->query = new CoordinateQueryParser()->parse('27.75', '129.05');
+        $this->query = new CoordinateQueryParser(new CoordinateNotationParser())->parse('27.75', '129.05');
     }
 
     public function testFreshForecastPage(): void
     {
         $viewModel = $this->factory->create($this->query, MarineForecastResult::fresh($this->forecast()));
 
-        self::assertSame(['latitude' => '27.75', 'longitude' => '129.05', 'latitudeError' => null, 'longitudeError' => null], $viewModel->form);
+        self::assertSame([
+            'latitude' => '27.75',
+            'longitude' => '129.05',
+            'latitudeError' => null,
+            'longitudeError' => null,
+            'staleNotice' => self::STALE_NOTICE,
+        ], $viewModel->form);
         self::assertNull($viewModel->notice);
         self::assertSame('北緯 27.75° / 東経 129.05°', $viewModel->location);
         self::assertSame('最終更新：2026/10/05 20:15（21:15以降に再取得）', $viewModel->lastUpdated);
@@ -191,7 +201,7 @@ final class ForecastPageViewModelFactoryTest extends TestCase
     }
 
     /**
-     * @return iterable<string, array{MarineForecastResult, string, string}>
+     * @return iterable<string, array{MarineForecastResult, string, string, string}>
      */
     public static function favoriteTargetProvider(): iterable
     {
@@ -205,27 +215,89 @@ final class ForecastPageViewModelFactoryTest extends TestCase
             [],
         );
 
-        yield 'fresh' => [MarineForecastResult::fresh($forecast(27.75, 129.05)), '27.75', '129.05'];
-        yield 'stale' => [MarineForecastResult::stale($forecast(27.75, 129.05)), '27.75', '129.05'];
-        yield 'unavailable' => [MarineForecastResult::unavailable(27.75, 129.05), '27.75', '129.05'];
-        yield 'rate limited' => [MarineForecastResult::rateLimited(27.75, 129.05), '27.75', '129.05'];
-        yield 'pads decimals' => [MarineForecastResult::unavailable(28.1, 129.3), '28.10', '129.30'];
-        yield 'negative' => [MarineForecastResult::unavailable(-0.5, -120.0), '-0.50', '-120.00'];
+        // [結果, 緯度, 経度, 保存される地点の表示]
+        yield 'fresh' => [MarineForecastResult::fresh($forecast(27.75, 129.05)), '27.75', '129.05', '北緯 27.75° / 東経 129.05°'];
+        yield 'stale' => [MarineForecastResult::stale($forecast(27.75, 129.05)), '27.75', '129.05', '北緯 27.75° / 東経 129.05°'];
+        // 予報が得られなくても、保存される地点は結果の緯度・経度から作る
+        yield 'unavailable' => [MarineForecastResult::unavailable(27.75, 129.05), '27.75', '129.05', '北緯 27.75° / 東経 129.05°'];
+        yield 'rate limited' => [MarineForecastResult::rateLimited(27.75, 129.05), '27.75', '129.05', '北緯 27.75° / 東経 129.05°'];
+        yield 'pads decimals' => [MarineForecastResult::unavailable(28.1, 129.3), '28.10', '129.30', '北緯 28.10° / 東経 129.30°'];
+        yield 'negative' => [MarineForecastResult::unavailable(-0.5, -120.0), '-0.50', '-120.00', '南緯 0.50° / 西経 120.00°'];
         // 丸めた結果が -0.0 になる座標を「-0.00」と表示しない
-        yield 'negative zero' => [MarineForecastResult::unavailable(-0.0, 129.05), '0.00', '129.05'];
+        yield 'negative zero' => [MarineForecastResult::unavailable(-0.0, 129.05), '0.00', '129.05', '北緯 0.00° / 東経 129.05°'];
     }
 
     #[DataProvider('favoriteTargetProvider')]
-    public function testFavoriteTarget(MarineForecastResult $result, string $latitude, string $longitude): void
+    public function testFavoriteTarget(MarineForecastResult $result, string $latitude, string $longitude, string $label): void
     {
         $viewModel = $this->factory->create($this->query, $result);
 
-        self::assertSame(['latitude' => $latitude, 'longitude' => $longitude], $viewModel->favoriteTarget);
+        self::assertSame(['latitude' => $latitude, 'longitude' => $longitude, 'label' => $label], $viewModel->favoriteTarget);
+    }
+
+    /**
+     * @return iterable<string, array{MarineForecastResult|null, bool}>
+     */
+    public static function staleNoticeProvider(): iterable
+    {
+        $forecast = static fn (): MarineForecastView => new MarineForecastView(
+            27.75,
+            129.05,
+            new \DateTimeImmutable('2026-10-05T20:15:00+09:00'),
+            new \DateTimeImmutable('2026-10-05T21:15:00+09:00'),
+            GroupAvailability::Available,
+            GroupAvailability::Available,
+            [],
+        );
+
+        yield 'fresh' => [MarineForecastResult::fresh($forecast()), true];
+        yield 'stale' => [MarineForecastResult::stale($forecast()), true];
+        // 食い違いで誤解する一覧がない画面には出さない
+        yield 'unavailable' => [MarineForecastResult::unavailable(27.75, 129.05), false];
+        yield 'rate limited' => [MarineForecastResult::rateLimited(27.75, 129.05), false];
+        yield 'invalid input' => [null, false];
+    }
+
+    #[DataProvider('staleNoticeProvider')]
+    public function testStaleNoticeIsOnlyForPagesWithAForecastList(?MarineForecastResult $result, bool $expected): void
+    {
+        $viewModel = null === $result
+            ? $this->factory->createForInvalidInput(new CoordinateQueryParser(new CoordinateNotationParser())->parse('95', '129.05'))
+            : $this->factory->create($this->query, $result);
+
+        self::assertSame($expected ? self::STALE_NOTICE : null, $viewModel->form['staleNotice']);
+    }
+
+    /**
+     * @return iterable<string, array{string|null, string|null}>
+     */
+    public static function inputNoticeProvider(): iterable
+    {
+        yield 'longitude ignored' => ['lon', 'この地点は緯度欄の「緯度, 経度」から読み取りました。経度欄に入っていた値は使っていません'];
+        yield 'latitude ignored' => ['lat', 'この地点は経度欄の「緯度, 経度」から読み取りました。緯度欄に入っていた値は使っていません'];
+        yield 'nothing ignored' => [null, null];
+    }
+
+    #[DataProvider('inputNoticeProvider')]
+    public function testInputNotice(?string $ignored, ?string $expected): void
+    {
+        $query = new CoordinateQueryParser(new CoordinateNotationParser())->parse('35.10', '139.20', $ignored);
+
+        $viewModel = $this->factory->create($query, MarineForecastResult::fresh($this->forecast()));
+
+        self::assertSame($expected, $viewModel->inputNotice);
+    }
+
+    public function testInvalidInputHasNoInputNotice(): void
+    {
+        $query = new CoordinateQueryParser(new CoordinateNotationParser())->parse('95', 'abc', 'lon');
+
+        self::assertNull($this->factory->createForInvalidInput($query)->inputNotice);
     }
 
     public function testInvalidInputPage(): void
     {
-        $query = new CoordinateQueryParser()->parse('95', 'abc');
+        $query = new CoordinateQueryParser(new CoordinateNotationParser())->parse('95', 'abc');
 
         $viewModel = $this->factory->createForInvalidInput($query);
 
@@ -233,7 +305,8 @@ final class ForecastPageViewModelFactoryTest extends TestCase
             'latitude' => '95',
             'longitude' => 'abc',
             'latitudeError' => '緯度は -90〜90 の範囲で入力してください',
-            'longitudeError' => '経度を数値（-180〜180）で入力してください',
+            'longitudeError' => '経度を読み取れませんでした。入力例：27.75 / 27.75, 129.05 / 27°45.0\'N / 27°45\'00"N',
+            'staleNotice' => null,
         ], $viewModel->form);
         self::assertNull($viewModel->notice);
         self::assertNull($viewModel->location);

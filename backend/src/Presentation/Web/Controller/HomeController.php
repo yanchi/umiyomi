@@ -14,7 +14,7 @@ final class HomeController extends AbstractController
     public function __invoke(): Response
     {
         return $this->render('home/index.html.twig', [
-            'form' => ['latitude' => '', 'longitude' => '', 'latitudeError' => null, 'longitudeError' => null],
+            'form' => ['latitude' => '', 'longitude' => '', 'latitudeError' => null, 'longitudeError' => null, 'staleNotice' => null],
         ]);
     }
 }

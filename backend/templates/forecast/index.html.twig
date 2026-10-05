@@ -7,6 +7,9 @@
         <h1 class="site-title"><a href="{{ path('app_home') }}">UMIYOMI</a></h1>
     </header>
     {{ include('forecast/_form.html.twig', {form: page.form}) }}
+    {% if page.inputNotice %}
+        <p class="input-notice" role="status">{{ page.inputNotice }}</p>
+    {% endif %}
     {{ include('favorites/_switch_list.html.twig') }}
 
     {# 古い予報や取得できなかったことを見落とさないよう、地点・一覧より前に置く #}

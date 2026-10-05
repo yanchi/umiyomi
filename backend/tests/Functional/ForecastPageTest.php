@@ -89,7 +89,7 @@ final class ForecastPageTest extends WebTestCase
         $crawler = $this->client->request('GET', '/forecast?lat=27.75&lon=abc');
 
         self::assertResponseStatusCodeSame(422);
-        self::assertSelectorTextContains('#lon-error', '経度を数値（-180〜180）で入力してください');
+        self::assertSelectorTextContains('#lon-error', '経度を読み取れませんでした。入力例：');
         self::assertSame('abc', $crawler->filter('#lon')->attr('value'));
         self::assertSame('27.75', $crawler->filter('#lat')->attr('value'));
         self::assertCount(0, $crawler->filter('table'));
@@ -100,7 +100,7 @@ final class ForecastPageTest extends WebTestCase
         $crawler = $this->client->request('GET', '/forecast?lat=27.75&lon=');
 
         self::assertResponseStatusCodeSame(422);
-        self::assertSelectorTextContains('#lon-error', '経度を数値（-180〜180）で入力してください');
+        self::assertSelectorTextContains('#lon-error', '経度を入力してください');
         self::assertCount(0, $crawler->filter('table'));
     }
 
@@ -192,17 +192,222 @@ final class ForecastPageTest extends WebTestCase
         $this->client->request('GET', '/forecast?lat=27.75&lon=129.05');
         $this->client->request('GET', '/forecast?lat=27.7500&lon=129.05');
 
+        // 正規形でない入力はリダイレクトされ、リダイレクト元では予報を取得しない
+        self::assertResponseStatusCodeSame(303);
+        self::assertSame(1, $this->provider()->callCount());
+
+        $this->client->followRedirect();
+
         self::assertResponseStatusCodeSame(200);
         self::assertSame(1, $this->provider()->callCount());
     }
 
-    public function testFullWidthInputIsKeptInFormWithoutRedirect(): void
+    public function testFullWidthInputRedirectsToCanonicalUrl(): void
     {
-        $crawler = $this->client->request('GET', '/forecast?lat='.rawurlencode('２７．７５').'&lon=129.05');
+        $this->client->request('GET', '/forecast?lat='.rawurlencode('２７．７５').'&lon=129.05');
+
+        self::assertResponseStatusCodeSame(303);
+        self::assertResponseHeaderSame('Location', '/forecast?lat=27.75&lon=129.05');
+        self::assertSame(0, $this->provider()->callCount());
+
+        $crawler = $this->client->followRedirect();
 
         self::assertResponseStatusCodeSame(200);
-        self::assertSame('２７．７５', $crawler->filter('#lat')->attr('value'));
+        self::assertSame('27.75', $crawler->filter('#lat')->attr('value'));
         self::assertSelectorTextContains('.location', '北緯 27.75°');
+    }
+
+    public function testInputIsRoundedExactlyInRedirect(): void
+    {
+        $this->client->request('GET', '/forecast?lat=27.755&lon=129.05');
+
+        self::assertResponseStatusCodeSame(303);
+        self::assertResponseHeaderSame('Location', '/forecast?lat=27.76&lon=129.05');
+    }
+
+    public function testRedirectIsNotCountedByRateLimiter(): void
+    {
+        for ($i = 0; $i < 30; ++$i) {
+            $this->client->request('GET', '/forecast?lat=27.7500&lon=129.05');
+            self::assertResponseStatusCodeSame(303);
+        }
+
+        $this->client->request('GET', '/forecast?lat=45.00&lon=129.05');
+
+        self::assertResponseStatusCodeSame(200);
+    }
+
+    public function testCanonicalUrlDoesNotRedirect(): void
+    {
+        $this->client->request('GET', '/forecast?lat=27.75&lon=129.05');
+
+        self::assertResponseStatusCodeSame(200);
+        self::assertResponseNotHasHeader('Location');
+    }
+
+    public function testAxisMismatchIs422AndKeepsInput(): void
+    {
+        $crawler = $this->client->request('GET', '/forecast?lat=27.75E&lon=129.05');
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('#lat-error', 'E・W は経度に使います');
+        self::assertSame('27.75E', $crawler->filter('#lat')->attr('value'));
+        self::assertSame(0, $this->provider()->callCount());
+    }
+
+    public function testPairInLatitudeFieldRedirectsAndFillsBothFields(): void
+    {
+        $this->client->request('GET', '/forecast?lat='.rawurlencode('27.75, 129.05').'&lon=');
+
+        self::assertResponseStatusCodeSame(303);
+        self::assertResponseHeaderSame('Location', '/forecast?lat=27.75&lon=129.05');
+
+        $crawler = $this->client->followRedirect();
+
+        self::assertResponseStatusCodeSame(200);
+        self::assertSame('27.75', $crawler->filter('#lat')->attr('value'));
+        self::assertSame('129.05', $crawler->filter('#lon')->attr('value'));
+    }
+
+    public function testIphoneMapsFormatRedirectsToDecimal(): void
+    {
+        $this->client->request('GET', '/forecast?lat='.rawurlencode('27.75000° N, 129.05000° E').'&lon=');
+
+        self::assertResponseStatusCodeSame(303);
+        self::assertResponseHeaderSame('Location', '/forecast?lat=27.75&lon=129.05');
+    }
+
+    public function testIgnoredFieldIsReportedAfterRedirect(): void
+    {
+        $this->client->request('GET', '/forecast?lat='.rawurlencode('35.10, 139.20').'&lon=129.05');
+
+        self::assertResponseStatusCodeSame(303);
+        self::assertResponseHeaderSame('Location', '/forecast?lat=35.10&lon=139.20&ignored=lon');
+
+        $crawler = $this->client->followRedirect();
+
+        self::assertResponseStatusCodeSame(200);
+        self::assertSelectorTextContains('[role="status"].input-notice', '経度欄に入っていた値は使っていません');
+        self::assertSame('35.10', $crawler->filter('#lat')->attr('value'));
+
+        // ignored のない URL（入力欄からの送信・お気に入り）では通知を出さない
+        $crawler = $this->client->request('GET', '/forecast?lat=35.10&lon=139.20');
+
+        self::assertCount(0, $crawler->filter('.input-notice'));
+    }
+
+    public function testPairInLongitudeFieldRedirects(): void
+    {
+        $this->client->request('GET', '/forecast?lat=&lon='.rawurlencode('27.75, 129.05'));
+
+        self::assertResponseStatusCodeSame(303);
+        self::assertResponseHeaderSame('Location', '/forecast?lat=27.75&lon=129.05');
+    }
+
+    public function testPairInBothFieldsIs422(): void
+    {
+        $crawler = $this->client->request('GET', '/forecast?lat='.rawurlencode('27.75, 129.05').'&lon='.rawurlencode('27.75, 129.05'));
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('#lat-error', '「緯度, 経度」はどちらか一方の欄だけに入力してください');
+        self::assertSelectorTextContains('#lon-error', '「緯度, 経度」はどちらか一方の欄だけに入力してください');
+        self::assertSame(0, $this->provider()->callCount());
+        self::assertCount(0, $crawler->filter('table'));
+    }
+
+    public function testSwappedOrderIs422AndKeepsInput(): void
+    {
+        $crawler = $this->client->request('GET', '/forecast?lat='.rawurlencode('129.05, 27.75').'&lon=');
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('#lat-error', '緯度と経度の順序が逆になっている可能性があります');
+        self::assertSame('129.05, 27.75', $crawler->filter('#lat')->attr('value'));
+    }
+
+    public function testPairThatFitsLatitudeRangeIsNotSwapped(): void
+    {
+        $this->client->request('GET', '/forecast?lat='.rawurlencode('35.00, 45.00').'&lon=');
+
+        self::assertResponseStatusCodeSame(303);
+
+        $this->client->followRedirect();
+
+        self::assertResponseStatusCodeSame(200);
+        self::assertSelectorTextContains('.location', '北緯 35.00° / 東経 45.00°');
+    }
+
+    /**
+     * @return iterable<string, array{string, string, string}>
+     */
+    public static function degreeMinuteRedirectProvider(): iterable
+    {
+        yield 'degrees minutes' => ["27°45.0'N", "129°03.0'E", '/forecast?lat=27.75&lon=129.05'];
+        yield 'degrees minutes seconds' => ['27°45\'00"N', '129°03\'00"E', '/forecast?lat=27.75&lon=129.05'];
+        yield 'one line' => ["N27°45.0' E129°03.0'", '', '/forecast?lat=27.75&lon=129.05'];
+        yield 'rounding and south west' => ["S27°45.3'", "W129°03.0'", '/forecast?lat=-27.76&lon=-129.05'];
+    }
+
+    #[DataProvider('degreeMinuteRedirectProvider')]
+    public function testDegreeMinuteInputRedirectsToDecimalUrl(string $latitude, string $longitude, string $location): void
+    {
+        $this->client->request('GET', '/forecast?lat='.rawurlencode($latitude).'&lon='.rawurlencode($longitude));
+
+        self::assertResponseStatusCodeSame(303);
+        self::assertResponseHeaderSame('Location', $location);
+    }
+
+    public function testDegreeMinuteInputIsShownAsDecimals(): void
+    {
+        $this->client->request('GET', '/forecast?lat='.rawurlencode("S27°45.3'").'&lon='.rawurlencode("W129°03.0'"));
+        $crawler = $this->client->followRedirect();
+
+        self::assertResponseStatusCodeSame(200);
+        self::assertSelectorTextContains('.location', '南緯 27.76° / 西経 129.05°');
+        self::assertSame('-27.76', $crawler->filter('#lat')->attr('value'));
+        self::assertSame('-129.05', $crawler->filter('#lon')->attr('value'));
+    }
+
+    public function testMinutesOutOfRangeIs422(): void
+    {
+        $this->client->request('GET', '/forecast?lat='.rawurlencode("27°75'N").'&lon=129.05');
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('#lat-error', '分・秒は 0 以上 60 未満で入力してください');
+    }
+
+    public function testUnreadableInputShowsExamplesNearTheField(): void
+    {
+        $crawler = $this->client->request('GET', '/forecast?lat='.rawurlencode('北緯二十七度').'&lon=129.05');
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('#lat-error', '入力例：27.75 / 27.75, 129.05 / 27°45.0\'N / 27°45\'00"N');
+        self::assertSame('lat-error', $crawler->filter('#lat')->attr('aria-describedby'));
+        self::assertSame('北緯二十七度', $crawler->filter('#lat')->attr('value'));
+        self::assertSame(0, $this->provider()->callCount());
+    }
+
+    public function testLinkIsRejectedWithGuidance(): void
+    {
+        $this->client->request('GET', '/forecast?lat='.rawurlencode('https://maps.app.goo.gl/xxxx').'&lon=');
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('#lat-error', 'リンクからは地点を読み取れません');
+    }
+
+    public function testTooLongInputIs422(): void
+    {
+        $this->client->request('GET', '/forecast?lat='.str_repeat('1', 101).'&lon=129.05');
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('#lat-error', '入力が長すぎます');
+    }
+
+    public function testConflictingDirectionsIs422(): void
+    {
+        $this->client->request('GET', '/forecast?lat=N27.75S&lon=129.05');
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSelectorTextContains('#lat-error', '方角の文字が複数あります');
     }
 
     public function testUnknownQueryParametersAreIgnored(): void

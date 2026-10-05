@@ -1,5 +1,7 @@
 {# 表示中の地点の座標は、サーバーで丸めた値を data 属性で渡す。JavaScript は丸め直さない（research R2） #}
 <section class="favorites-save" data-favorites="save-panel" data-latitude="{{ target.latitude }}" data-longitude="{{ target.longitude }}" data-confirm-remove="『{name}』をお気に入りから削除しますか？">
+    {# 入力欄を書き換えても変わらないよう、JavaScript ではなくサーバーが出した値で表示する（FR-025） #}
+    <p class="favorites-target">保存される地点：{{ target.label }}（表示中の地点）</p>
     <div data-favorites-state="unsaved" hidden>
         <form class="favorites-save-form" novalidate>
             <div class="field">

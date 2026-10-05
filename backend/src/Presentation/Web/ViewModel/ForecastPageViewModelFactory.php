@@ -36,27 +36,37 @@ final readonly class ForecastPageViewModelFactory
 
     public function createForInvalidInput(CoordinateQuery $query): ForecastPageViewModel
     {
-        return new ForecastPageViewModel($this->form($query), null, null, null, [], null, null);
+        return new ForecastPageViewModel($this->form($query, null), null, null, null, [], null, null);
     }
 
     public function create(CoordinateQuery $query, MarineForecastResult $result): ForecastPageViewModel
     {
         $forecast = $result->forecast;
         if (null === $forecast) {
-            return new ForecastPageViewModel($this->form($query), $this->notice($result->status, null), null, null, [], null, $this->favoriteTarget($result));
+            return new ForecastPageViewModel($this->form($query, null), $this->notice($result->status, null), null, null, [], null, $this->favoriteTarget($result), $this->inputNotice($query));
         }
 
         $isStale = ForecastStatus::Stale === $result->status;
 
         return new ForecastPageViewModel(
-            form: $this->form($query),
+            form: $this->form($query, $this->staleNotice($forecast)),
             notice: $this->notice($result->status, $forecast),
             location: $this->location($forecast),
             lastUpdated: $this->lastUpdated($forecast, $isStale),
             groupMessages: $this->groupMessages($forecast),
             table: $this->table($forecast),
             favoriteTarget: $this->favoriteTarget($result),
+            inputNotice: $this->inputNotice($query),
         );
+    }
+
+    private function inputNotice(CoordinateQuery $query): ?string
+    {
+        return match ($query->ignoredField) {
+            'longitude' => 'この地点は緯度欄の「緯度, 経度」から読み取りました。経度欄に入っていた値は使っていません',
+            'latitude' => 'この地点は経度欄の「緯度, 経度」から読み取りました。緯度欄に入っていた値は使っていません',
+            default => null,
+        };
     }
 
     /**
@@ -96,16 +106,28 @@ final readonly class ForecastPageViewModelFactory
     }
 
     /**
+     * @param string|null $staleNotice 入力欄が表示中の地点と異なるときの案内。予報の一覧がない画面では出さない
+     *
      * @return Form
      */
-    private function form(CoordinateQuery $query): array
+    private function form(CoordinateQuery $query, ?string $staleNotice): array
     {
         return [
             'latitude' => $query->rawLatitude,
             'longitude' => $query->rawLongitude,
             'latitudeError' => $query->errors['latitude'] ?? null,
             'longitudeError' => $query->errors['longitude'] ?? null,
+            'staleNotice' => $staleNotice,
         ];
+    }
+
+    // 入力欄を書き換えたあとに、表示中の一覧が入力欄の地点の予報だと誤解されないようにする（FR-021）。一覧の地点を文言に含める
+    private function staleNotice(MarineForecastView $forecast): string
+    {
+        return \sprintf(
+            '入力欄の地点の予報はまだ表示していません。表示中の一覧は %s の予報です。「予報を表示」を押すと、入力欄の地点の予報に切り替わります。',
+            $this->location($forecast),
+        );
     }
 
     /**
@@ -117,17 +139,24 @@ final readonly class ForecastPageViewModelFactory
         return [
             'latitude' => \sprintf('%.2f', $result->latitude + 0.0),
             'longitude' => \sprintf('%.2f', $result->longitude + 0.0),
+            'label' => self::formatLocation($result->latitude, $result->longitude),
         ];
     }
 
     private function location(MarineForecastView $forecast): string
     {
+        return self::formatLocation($forecast->latitude, $forecast->longitude);
+    }
+
+    // 予報の有無に関係なく同じ書式で作る。予報が得られない 503・429 でも保存パネルに地点を出すため
+    private static function formatLocation(float $latitude, float $longitude): string
+    {
         return \sprintf(
             '%s %s° / %s %s°',
-            $forecast->latitude < 0 ? '南緯' : '北緯',
-            number_format(abs($forecast->latitude), 2),
-            $forecast->longitude < 0 ? '西経' : '東経',
-            number_format(abs($forecast->longitude), 2),
+            $latitude < 0 ? '南緯' : '北緯',
+            number_format(abs($latitude), 2),
+            $longitude < 0 ? '西経' : '東経',
+            number_format(abs($longitude), 2),
         );
     }
 

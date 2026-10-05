@@ -177,6 +177,18 @@ JS_PATH="$(printf '%s' "$HOME_HTML" | grep -oE '/assets/app-[^"]+\.js' | head -1
 ok 'JS が読み込まれる' \
    "$([ -n "$JS_PATH" ] && http_code "$BASE$JS_PATH" || echo 'script なし')" '200'
 
+# 緯度・経度の入力補助（003）。app.js が読み込む ES Module が compile 済みでないと、現在地のボタンが prod でだけ動かない
+INPUT_JS_PATH="$(printf '%s' "$HOME_HTML" | grep -oE '/assets/coordinate-input/coordinate-input-ui-[^"]+\.js' | head -1 || true)"
+ok '入力補助の JS が読み込まれる' \
+   "$([ -n "$INPUT_JS_PATH" ] && http_code "$BASE$INPUT_JS_PATH" || echo 'importmap になし')" '200'
+
+# 度分の入力は予報を取得せずに十進数の URL へ 303 でリダイレクトする（外部 API は呼ばない）
+REDIRECT_URL="$BASE/forecast?lat=27%C2%B045.0%27N&lon=129%C2%B003.0%27E"
+ok '度分の入力は 303' "$(http_code "$REDIRECT_URL")" '303'
+ok '十進数の URL へリダイレクトする' \
+   "$(curl -s -D - -o /dev/null "$REDIRECT_URL" | tr -d '\r' | awk -F': ' 'tolower($1) == "location" { print $2 }')" \
+   '/forecast?lat=27.75&lon=129.05'
+
 # ---------------------------------------------------------------------------
 # 3. リバースプロキシの裏での接続元
 #    回数制限は接続元 IP ごとにかかる。trusted_proxies が効いていないと全員がプロキシの IP に見える。

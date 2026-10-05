@@ -26,11 +26,24 @@ final class ForecastController extends AbstractController
     #[Route('/forecast', name: 'app_forecast', methods: ['GET'])]
     public function __invoke(Request $request): Response
     {
-        $query = $this->parser->parse($request->query->getString('lat'), $request->query->getString('lon'));
+        $query = $this->parser->parse(
+            $request->query->getString('lat'),
+            $request->query->getString('lon'),
+            $request->query->getString('ignored'),
+        );
         if (!$query->isValid()) {
             return $this->render('forecast/index.html.twig', [
                 'page' => $this->viewModelFactory->createForInvalidInput($query),
             ], new Response(status: Response::HTTP_UNPROCESSABLE_ENTITY));
+        }
+
+        // 正規形でない入力は、予報を取得せずに正規形の URL へ移す。取得（回数制限を含む）はリダイレクト先で 1 回だけ行い、
+        // 同じ操作が回数制限に 2 回数えられないようにする
+        if ($query->needsRedirect()) {
+            return $this->redirectToRoute('app_forecast', [
+                'lat' => $query->canonicalLatitude,
+                'lon' => $query->canonicalLongitude,
+            ] + (null === $query->ignoredField ? [] : ['ignored' => 'latitude' === $query->ignoredField ? 'lat' : 'lon']), Response::HTTP_SEE_OTHER);
         }
 
         $result = $this->viewMarineForecast->execute(

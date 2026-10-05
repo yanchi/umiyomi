@@ -1,8 +1,9 @@
-{# 全角数字やマイナス記号も受け付けるため type="number" ではなく text + inputmode="decimal" にする #}
-<form class="coordinate-form" method="get" action="{{ path('app_forecast') }}" novalidate>
+{# カンマ・度分秒の記号・方角の文字を手入力するため、数字だけのキーボードになる inputmode は付けず、文字のキーボードにする。
+   自動修正・自動大文字化・スペルチェックは入力を勝手に書き換えるので切る（FR-020） #}
+<form class="coordinate-form" method="get" action="{{ path('app_forecast') }}" data-coordinate-input novalidate>
     <div class="field">
         <label for="lat">緯度</label>
-        <input id="lat" name="lat" type="text" inputmode="decimal" autocomplete="off" placeholder="例：27.75" value="{{ form.latitude }}"
+        <input id="lat" name="lat" data-coordinate-field="latitude" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="例：27.75" value="{{ form.latitude }}"
             {%- if form.latitudeError %} aria-invalid="true" aria-describedby="lat-error"{% endif %}>
         {% if form.latitudeError %}
             <p id="lat-error" class="field-error">{{ form.latitudeError }}</p>
@@ -10,12 +11,28 @@
     </div>
     <div class="field">
         <label for="lon">経度</label>
-        <input id="lon" name="lon" type="text" inputmode="decimal" autocomplete="off" placeholder="例：129.05" value="{{ form.longitude }}"
+        <input id="lon" name="lon" data-coordinate-field="longitude" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="例：129.05" value="{{ form.longitude }}"
             {%- if form.longitudeError %} aria-invalid="true" aria-describedby="lon-error"{% endif %}>
         {% if form.longitudeError %}
             <p id="lon-error" class="field-error">{{ form.longitudeError }}</p>
         {% endif %}
     </div>
     <button type="submit">予報を表示</button>
-    <p class="form-hint">十進数で入力してください。南緯・西経はマイナスの値です。</p>
+    {# 現在地は JavaScript が使えて HTTPS（か localhost）のときだけ、スクリプトが hidden を外して表示する（FR-018） #}
+    <div class="current-location" data-current-location hidden>
+        <button type="button" data-current-location-action="fill">現在地を入力</button>
+        <div role="status">
+            <p class="current-location-message" data-current-location-message="loading" hidden>現在地を取得しています…</p>
+            <p class="current-location-message" data-current-location-message="filled" hidden>現在地を入力しました。「予報を表示」を押すと予報を表示します</p>
+            <p class="current-location-message" data-current-location-message="denied" hidden>位置情報の利用が許可されなかったため、現在地を入力できませんでした。緯度・経度を入力すると予報を表示できます</p>
+            <p class="current-location-message" data-current-location-message="failed" hidden>現在地を取得できませんでした。もう一度試すか、緯度・経度を入力すると予報を表示できます</p>
+            <p class="current-location-message" data-current-location-message="edited" hidden>入力欄が変更されたため、取得した現在地は入力していません</p>
+        </div>
+        <p class="current-location-note">現在地が陸地や港の内側の場合、波・うねりの予報が得られないことや、沖の海況と異なることがあります。必要に応じて沖側の地点を入力してください。</p>
+    </div>
+    <p class="form-hint">十進数（27.75）のほか、「緯度, 経度」の貼り付け（27.75, 129.05）、度分（27°45.0'N）、度分秒（27°45'00"N）で入力できます。南緯・西経はマイナスの値にするか、S・W を付けてください。</p>
+    {# 予報の一覧があるときだけ出す。入力欄が開いたときの文字列から変わったら、スクリプトが hidden を外す（FR-021） #}
+    {% if form.staleNotice %}
+        <p class="stale-notice" data-coordinate-stale-notice hidden>{{ form.staleNotice }}</p>
+    {% endif %}
 </form>

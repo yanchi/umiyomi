@@ -78,6 +78,13 @@ final readonly class CoordinateQueryParser
             return new CoordinateQuery($rawLatitude, $rawLongitude, null, null, [$key => $this->message($error, $holder)]);
         }
 
+        // `27 45.0` は緯度 27・経度 45.0 とも、度分の書き間違いとも読める。もう一方の欄に値があるのに、
+        // それを使わずに別の地点を表示することは避け、記号を付けて入力し直してもらう（FR-005）。
+        // カンマ区切りや記号・方角の文字がある形は、地図アプリの出力なので従来どおり通知つきで受け付ける
+        if ($pair->isUnmarkedSpacePair && FieldKind::Empty !== $other->kind) {
+            return new CoordinateQuery($rawLatitude, $rawLongitude, null, null, [$key => $this->message(NotationError::UnitlessDegreeMinutes, $holder)]);
+        }
+
         // 方角の文字があれば順序を問わずそれで決め、なければ常に先頭を緯度にする（FR-003）
         $longitudeFirst = Axis::Longitude === $first->axis;
         $latitudeAngle = $longitudeFirst ? $second : $first;

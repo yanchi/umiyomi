@@ -437,6 +437,34 @@ final class CoordinateQueryParserTest extends TestCase
         self::assertArrayNotHasKey('longitude', $query->errors);
     }
 
+    /**
+     * @return iterable<string, array{string, string, bool}>
+     */
+    public static function unmarkedSpacePairProvider(): iterable
+    {
+        // [緯度欄, 経度欄, 有効か]。空白だけで区切られた数字 2 つは、もう一方の欄が空のときだけ受け付ける
+        yield 'minutes with a fraction, other field filled' => ['27 45.0', '129.05', false];
+        yield 'fraction in degrees, other field filled' => ['27.5 45', '129.05', false];
+        yield 'decimals with a space, other field filled' => ['35.10 139.20', '129.05', false];
+        yield 'minutes with a fraction, other field empty' => ['27 45.5', '', true];
+        yield 'decimals with a space, other field empty' => ['35.10 139.20', '', true];
+        // 地図アプリの出力（カンマ区切り）や方角の文字がある形は、通知つきで受け付ける
+        yield 'comma separated, other field filled' => ['35.10, 139.20', '129.05', true];
+        yield 'direction letters, other field filled' => ['35.10N 139.20E', '129.05', true];
+        yield 'symbols, other field filled' => ["35°10' 139°20'", '129.05', true];
+    }
+
+    #[DataProvider('unmarkedSpacePairProvider')]
+    public function testUnmarkedSpacePairNeedsTheOtherFieldToBeEmpty(string $latitude, string $longitude, bool $valid): void
+    {
+        $query = $this->parser->parse($latitude, $longitude);
+
+        self::assertSame($valid, $query->isValid());
+        if (!$valid) {
+            self::assertSame(['latitude' => '度分で入力するときは、度と分の記号を付けてください（例：27°45.0\' 129°03.0\'）'], $query->errors);
+        }
+    }
+
     public function testNoBreakSpaceFromCopyAndPasteIsAccepted(): void
     {
         $query = $this->parser->parse("27.75\u{00A0}", "129.05\u{00A0}");

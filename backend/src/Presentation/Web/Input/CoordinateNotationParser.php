@@ -139,7 +139,9 @@ final readonly class CoordinateNotationParser
             return ParsedField::invalid(NotationError::PairSameAxis, true);
         }
 
-        return ParsedField::pair($first, $second);
+        $unmarked = '/^[+-]?'.self::DECIMAL.' +[+-]?'.self::DECIMAL.'$/';
+
+        return ParsedField::pair($first, $second, 1 === preg_match($unmarked, $text));
     }
 
     /**

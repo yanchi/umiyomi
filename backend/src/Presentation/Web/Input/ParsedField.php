@@ -15,6 +15,7 @@ final readonly class ParsedField
         public ?Angle $second,
         public ?NotationError $error,
         public bool $looksLikePair,
+        public bool $isUnmarkedSpacePair = false,
     ) {
     }
 
@@ -28,9 +29,12 @@ final readonly class ParsedField
         return new self(FieldKind::Single, $angle, null, null, false);
     }
 
-    public static function pair(Angle $first, Angle $second): self
+    /**
+     * @param bool $isUnmarkedSpacePair 方角の文字・記号・カンマのない、空白だけで区切られた数字 2 つか。度分の書き間違いと区別できない
+     */
+    public static function pair(Angle $first, Angle $second, bool $isUnmarkedSpacePair = false): self
     {
-        return new self(FieldKind::Pair, $first, $second, null, true);
+        return new self(FieldKind::Pair, $first, $second, null, true, $isUnmarkedSpacePair);
     }
 
     /**

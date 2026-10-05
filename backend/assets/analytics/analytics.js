@@ -74,7 +74,8 @@ export const initAnalytics = (doc) => {
 };
 
 export const track = (name, params) => {
-    if (!tracking) {
+    // 計測を止める前から開いている画面（bfcache からの復元・別タブ）でも送らないよう、送る都度 localStorage を読み直す
+    if (!tracking || optedOut()) {
         return;
     }
 

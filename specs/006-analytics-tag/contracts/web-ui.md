@@ -32,7 +32,7 @@
 | `GET /forecast`（422：入力不正） | `invalid_input` | `/forecast` |
 | `GET /feedback`（200） | `feedback` | `/feedback` |
 | `GET /external-transmission`（200） | `external_transmission` | `/external-transmission` |
-| エラー画面（404 など） | `error` | リクエストのパス（クエリなし。例：`/no-such-page`） |
+| エラー画面（404 など） | `error` | `/error`（固定。404 のパスは利用者が自由に付けられるため送らない） |
 
 - `GET /forecast` の 303（正規化のリダイレクト）は画面を描画しないので出さない
 - `data-path` に、利用者の入力文字列（入力不正の `lat`・`lon`、案内画面の `input_lat`・`input_lon`）・`updated`・`ignored` を含めない（FR-005）

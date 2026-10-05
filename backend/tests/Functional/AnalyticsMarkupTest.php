@@ -80,7 +80,7 @@ final class AnalyticsMarkupTest extends WebTestCase
         yield 'feedback with context' => ['feedback_context', 'feedback', '/feedback'];
         yield 'external transmission' => ['external_transmission', 'external_transmission', '/external-transmission'];
         yield 'feedback with input' => ['feedback_input', 'feedback', '/feedback'];
-        yield 'not found' => ['not_found', 'error', '/no-such-page'];
+        yield 'not found' => ['not_found', 'error', '/error'];
     }
 
     #[DataProvider('screens')]
@@ -125,6 +125,17 @@ final class AnalyticsMarkupTest extends WebTestCase
             self::assertStringNotContainsString('script', $path);
             self::assertSame('/', $path[0]);
             self::assertStringNotContainsString('?', $path, $query);
+        }
+    }
+
+    // 404 のパスは利用者が自由に付けられるので、アドレスに載せない（FR-005）
+    public function testErrorScreenNeverSendsRequestedPath(): void
+    {
+        foreach (self::INPUTS as $input) {
+            $crawler = $this->client->request('GET', '/'.rawurlencode($input));
+            $meta = $crawler->filter('head meta[name="umiyomi-analytics"]');
+            self::assertCount(1, $meta);
+            self::assertSame('/error', $meta->attr('data-path'));
         }
     }
 

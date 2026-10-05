@@ -183,3 +183,21 @@ test.describe('計測を止める切り替え（app-e2e-analytics）', () => {
         await context.close();
     });
 });
+
+test.describe('計測を止めた後に残っている画面（app-e2e-analytics）', () => {
+    test.skip(!ANALYTICS_BASE_URL, 'E2E_ANALYTICS_BASE_URL が未設定');
+    test.use({ baseURL: ANALYTICS_BASE_URL });
+
+    // bfcache からの復元や別タブのように、止める前から開いていた画面は、読み込み時の状態のままになる
+    test('開いたままの画面で操作しても、停止後はイベントを送らない', async ({ context, page }) => {
+        await stubGoogle(context);
+        await page.goto('/forecast?lat=27.75&lon=129.05');
+        await page.waitForFunction(() => window.dataLayer?.length > 0);
+
+        await page.evaluate(() => window.localStorage.setItem('umiyomi.analytics.optOut', '1'));
+        await page.getByRole('button', { name: 'お気に入りに保存' }).click();
+        await expect(page.getByText('お気に入りに保存しました')).toBeVisible();
+
+        expect(await eventEntries(page)).toEqual([]);
+    });
+});

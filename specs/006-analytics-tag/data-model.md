@@ -28,7 +28,7 @@
 | 入力不正 | 同上 | `invalid_input` | `/forecast` | `analyticsQuery` が空 |
 | フィードバック案内 | `feedback/index.html.twig` | `feedback` | `/feedback` | 固定（クエリは付けない） |
 | 外部送信の案内 | `external_transmission/index.html.twig` | `external_transmission` | `/external-transmission` | 固定 |
-| エラー | `bundles/TwigBundle/Exception/error.html.twig` | `error` | `app.request.pathInfo` | リクエストのパス（クエリなし） |
+| エラー | `bundles/TwigBundle/Exception/error.html.twig` | `error` | `/error` | 固定（404 のパスは利用者が自由に付けられるため。FR-005） |
 
 `base.html.twig` の既定（どのテンプレートも決めなかったとき）は `{screen: 'error', path: '/'}` とせず、**`<meta>` を出さない**。新しい画面を足したときに、入力文字列入りのアドレスを既定で送らないため（許可リスト方式。research R3）。
 

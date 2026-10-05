@@ -121,6 +121,8 @@ Domain設計 / Repository境界 / 画面・URL設計（将来はAPI Contract） 
 - なし（FR-014）。localStorage の形式（002）も変えない (005-favicon-og-meta)
 - PHP 8.4（FrankenPHP、Docker）、JavaScript（ES2022 の ES Module。ビルドなし） + 既存の Symfony 8.1（FrameworkBundle、TwigBundle、AssetMapper）。新しい Composer / npm パッケージ・PHP 拡張は追加しない。ブラウザが実行時に Google の `gtag.js`（`www.googletagmanager.com`）を読み込む（計測が有効な環境だけ） (006-analytics-tag)
 - なし（FR-011）。ブラウザの localStorage に `umiyomi.analytics.optOut`（`"1"`）を追加。お気に入りの形式（002）は変えない (006-analytics-tag)
+- PHP 8.4（FrankenPHP、Docker）。Twig テンプレートが中心。nginx の設定ファイルとシェルスクリプト + 既存の Symfony 8.1（FrameworkBundle、TwigBundle、AssetMapper）。新しい Composer / npm パッケージ・PHP 拡張・外部サービスの読み込みは追加しない (007-seo-optimization)
+- なし（FR-014）。localStorage の形式（002・006）も変えない (007-seo-optimization)
 
 ## Recent Changes
 - 001-marine-forecast-view: Added PHP 8.4（FrankenPHP、Docker） + Symfony 8.1（FrameworkBundle、TwigBundle、HttpClient、Cache、AssetMapper）。追加：`symfony/clock`、`symfony/rate-limiter`

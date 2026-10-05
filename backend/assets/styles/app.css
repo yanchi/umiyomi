@@ -52,6 +52,35 @@ body {
     text-decoration: none;
 }
 
+/* h1 にサービスの内容を含めつつ、入力欄を最初の画面に残すため小さく詰めて 1 行に収める */
+.site-title__tagline {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 400;
+    line-height: 1.4;
+    letter-spacing: 0;
+    color: var(--color-text);
+}
+
+.home-guide {
+    margin-top: 1.5rem;
+}
+
+.home-guide h2 {
+    margin: 1.25rem 0 0.5rem;
+    font-size: 1.125rem;
+}
+
+.home-guide p {
+    margin: 0.5rem 0;
+}
+
+.home-guide ul,
+.home-guide ol {
+    margin: 0.5rem 0;
+    padding-left: 1.5rem;
+}
+
 .lead {
     margin: 0.25rem 0 0;
     color: var(--color-muted);

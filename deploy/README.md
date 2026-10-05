@@ -5,7 +5,7 @@ master に push すると、CI（`.github/workflows/ci.yml`）がテストと本
 1. `build-image`: 本番用イメージ（`backend/Dockerfile.prod`）をビルドして `ghcr.io/yanchi/umiyomi/app` に push する（タグは `latest` とコミット SHA）
 2. `deploy`: VPS に SSH して `compose.prod.yml` を転送し、SHA 指定のイメージで `docker compose up -d` する。healthy になるまで確かめる
 
-公開 URL は **`https://umiyomi.isl-mentor.com`**。公開するまでは vhost が `X-Robots-Tag: noindex, nofollow` を付けて検索エンジンに載せない（下の「公開するとき」）。
+公開 URL は **`https://umiyomi.isl-mentor.com`**。検索エンジンの登録対象はトップだけで、他の画面はアプリが返す `<meta name="robots" content="noindex">` で登録しない。vhost は certbot のチャレンジのパスにだけ `X-Robots-Tag: noindex` を付ける（下の「検索エンジンへの公開」）。
 
 ## 構成
 
@@ -46,7 +46,7 @@ ssh-keygen -t ed25519 -C 'umiyomi deploy (GitHub Actions)' -f umiyomi_deploy -N 
 2. `deploy/nginx/umiyomi.conf` の `DOMAIN` を `umiyomi.isl-mentor.com` に置き換えて `/etc/nginx/sites-available/umiyomi` に置き、`sites-enabled/umiyomi.conf` からリンクする（shipinfo-v2 と同じ形）
 3. `sudo nginx -t && sudo systemctl reload nginx`
 4. `sudo certbot --nginx -d umiyomi.isl-mentor.com`
-5. `curl -sI https://umiyomi.isl-mentor.com/ | grep -i x-robots-tag` で noindex が付いていることを確かめる
+5. 「検索エンジンへの公開」の「反映後の確認」で、トップに `X-Robots-Tag` が付かず、他の画面が `noindex` であることを確かめる
 
 2026-10-05 時点で、VPS の準備（`/opt/umiyomi`・`.env.production`・UMIYOMI 専用デプロイ鍵の登録）、DNS・vhost・certbot（証明書は certbot が自動で更新する）、GitHub の `production` environment（master のみ）と下の Secrets・Variable の登録はすべて済んでいる。
 
@@ -76,14 +76,64 @@ ShipInfoV2 の `deploy/README.md`（2026-10-03 時点）より。足すときは
 | 127.0.0.1:8081 | isl-mentor.com |
 | 127.0.0.1:3000 | ai-task-manager |
 
-## 公開するとき
+## 検索エンジンへの公開
 
-1. `deploy/nginx/umiyomi.conf` の `add_header X-Robots-Tag ...` を消し、VPS の `/etc/nginx/sites-available/umiyomi` からも消す（certbot が足した 443 の server にも写っている）
-2. `sudo nginx -t && sudo systemctl reload nginx`
-3. `scripts/verify-prod.sh` の X-Robots-Tag の確認を外す
+トップだけを検索エンジンの登録対象にする（007）。予報・フィードバック案内・外部送信の案内・エラー画面は、アプリが返す `<meta name="robots" content="noindex">` で登録しない。
+`robots.txt`・`sitemap.xml` はアプリが `DEFAULT_URI` から作って返す。
+LINE・X・Slack などの共有プレビュー（OG）は登録の有無に関係なく機能する。
 
-`X-Robots-Tag` を消すと、検索エンジンに登録されるのはトップだけになる。予報・フィードバック案内・エラー画面は、アプリが返す `<meta name="robots" content="noindex">` で登録されない。
-LINE・X・Slack などの共有プレビュー（OG）は、`X-Robots-Tag` が残っていても機能するので、消す前から確かめられる。
+### 前提
+
+007 が master にマージ・デプロイされていること。`curl -s https://umiyomi.isl-mentor.com/robots.txt` が `Sitemap:` の行を返すことで確かめる。
+デプロイ前に nginx を変えても、トップが登録可能になり `robots.txt` が 404 になるだけで、他の画面は `noindex` のまま。
+
+### 反映前の確認
+
+```bash
+curl -sI https://umiyomi.isl-mentor.com/ | grep -i x-robots-tag   # → X-Robots-Tag: noindex, nofollow
+```
+
+### nginx の vhost を変える
+
+VPS の `/etc/nginx/sites-available/umiyomi` を `deploy/nginx/umiyomi.conf` に合わせる。
+
+1. 80・443（certbot が写した）両方の server から `add_header X-Robots-Tag "noindex, nofollow" always;` を消す
+2. `location ^~ /.well-known/acme-challenge/` に `add_header X-Robots-Tag "noindex" always;` を足す（nginx が直接 200 で中身を返すのはこのパスだけのため）
+3. `sudo nginx -t && sudo systemctl reload nginx`
+
+### 反映後の確認
+
+```bash
+curl -sI https://umiyomi.isl-mentor.com/ | grep -i x-robots-tag                          # → 何も出ない
+curl -s https://umiyomi.isl-mentor.com/ | grep -c 'name="robots"'                         # → 0
+curl -s 'https://umiyomi.isl-mentor.com/forecast?lat=N27&lon=' | grep 'name="robots"'     # → noindex
+curl -s https://umiyomi.isl-mentor.com/external-transmission | grep 'name="robots"'       # → noindex
+curl -s https://umiyomi.isl-mentor.com/nope | grep 'name="robots"'                        # → noindex
+curl -s https://umiyomi.isl-mentor.com/ | grep canonical                                  # → https://umiyomi.isl-mentor.com/
+```
+
+### Search Console
+
+1. ドメイン プロパティ `umiyomi.isl-mentor.com` を追加する。親ドメイン `isl-mentor.com` にすると、同じドメインの他サービス（shipinfo など）のデータまで同じプロパティに入るため、サブドメインに限る
+2. 表示された TXT レコードを DNS の `umiyomi.isl-mentor.com` に追加して確認する（A レコードと同じ名前に共存できる）。
+   アプリに確認用の meta タグ・HTML ファイルは置かない
+3. サイトマップ `https://umiyomi.isl-mentor.com/sitemap.xml` を送信する
+4. URL 検査：
+   - `https://umiyomi.isl-mentor.com/` → 公開 URL をテストして「登録可能」→「インデックス登録をリクエスト」
+   - `https://umiyomi.isl-mentor.com/forecast?lat=27.75&lon=129.05`・`/external-transmission`・`/nope` → 「noindex タグによって除外」。フィードバックのフォームを設定済みなら `/feedback` も同様
+5. [リッチリザルトテスト](https://search.google.com/test/rich-results)と [Schema Markup Validator](https://validator.schema.org/) でトップを検査し、エラーが 0 件であることを確かめる
+
+Bing Webmaster Tools は任意。使うときは Search Console からサイトをインポートできる。
+
+### 公開後の定期確認
+
+- 2〜4 週間後：Search Console の「ページ」で、登録済みがトップだけ、予報画面が 0 件であること。「UMIYOMI」で検索してトップが出ること
+- 3 か月以内：GA4 の「集客」で、セッションのデフォルト チャネル グループ「Organic Search」が記録されること
+
+### 元に戻すとき
+
+検索結果から外したいときは、VPS の vhost の両方の server に `add_header X-Robots-Tag "noindex, nofollow" always;` を戻して `sudo nginx -t && sudo systemctl reload nginx` する（アプリの変更は戻さなくてよい）。
+すでに登録されたページを急いで消すときは、Search Console の「削除」も使う。
 
 ## フィードバックのフォームを設定する
 

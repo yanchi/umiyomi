@@ -1,17 +1,52 @@
 {% extends 'base.html.twig' %}
 
 {% set analytics_page = {screen: 'home', path: path('app_home')} %}
+{# 説明文と構造化データの description で同じ文言を使うため、変数にして二重に書かない #}
+{% set home_description = '出航前に、指定した緯度・経度の風速・風向・波高・波向・波周期・うねりの時間別予報を一覧で確認できます。出航の判断には、気象庁などの警報・注意報もあわせて確認してください。' %}
 
 {% block title %}UMIYOMI｜風・波・うねりの予報を出航前に確認{% endblock %}
 
-{# トップだけ検索エンジンへの登録を許可するため meta を出さない。本番の nginx の X-Robots-Tag が残る間は、それが優先されて登録されない #}
+{% block meta_description %}{{ home_description }}{% endblock %}
+
+{# トップだけ検索エンジンへの登録を許可するため meta を出さない #}
 {% block robots %}{% endblock %}
+
+{# リクエストのクエリを使わず、utm などのパラメーター付きで開いてもパラメーターなしのトップを指す #}
+{% block canonical %}<link rel="canonical" href="{{ site_origin|trim('/', 'right') }}{{ path('app_home') }}">{% endblock %}
+
+{# HTML の自動エスケープでは " が &quot; になり JSON が壊れるので raw にする。値は固定の文言と設定値だけで利用者の入力は入らず、
+   HEX_TAG・HEX_AMP で </script> から抜け出せない。
+   WebApplication は料金・評価が必須で、画面にない情報を作ることになるため WebSite だけにする #}
+{% block structured_data %}<script type="application/ld+json">{{ {'@context': 'https://schema.org', '@type': 'WebSite', name: 'UMIYOMI', alternateName: 'ウミヨミ', url: site_origin|trim('/', 'right') ~ path('app_home'), description: home_description, inLanguage: 'ja'}|json_encode(constant('JSON_UNESCAPED_UNICODE') b-or constant('JSON_UNESCAPED_SLASHES') b-or constant('JSON_HEX_TAG') b-or constant('JSON_HEX_AMP'))|raw }}</script>{% endblock %}
 
 {% block body %}
     <header class="page-header">
-        <h1 class="site-title"><a href="{{ path('app_home') }}">UMIYOMI</a></h1>
+        <h1 class="site-title"><a href="{{ path('app_home') }}">UMIYOMI</a> <span class="site-title__tagline">風・波・うねりの予報を出航前に確認</span></h1>
         <p class="lead">緯度・経度を入力すると、風・波・うねりの時間別予報を表示します。</p>
     </header>
     {{ include('forecast/_form.html.twig') }}
     {{ include('favorites/_manage_list.html.twig') }}
+    {# 検索エンジンと初めての人向けの説明。入力欄を最初の画面に残すため後ろに置く。
+       特定の地点を勧めないよう、予報画面へのリンクは置かない（FR-007a） #}
+    <section class="home-guide" aria-label="UMIYOMI について">
+        <h2>UMIYOMI でできること</h2>
+        <p>UMIYOMI（ウミヨミ）は、指定した緯度・経度の風・波・うねりの予報を、時間ごとの一覧で確認できる Web サービスです。およそ 3 日先までの海況の変化を、出航前に数値で確かめられます。会員登録なしで使えます。</p>
+        <p>予報画面に表示する項目：</p>
+        <ul>
+            <li>風：風速（m/s）・突風（m/s）・風向</li>
+            <li>波：波高（m）・波向・波周期（秒）</li>
+            <li>うねり：うねり高さ（m）・うねり向き・うねり周期（秒）</li>
+        </ul>
+        <p>予報画面には、予報を取得した日時を「最終更新」として表示します。</p>
+
+        <h2>使い方</h2>
+        <ol>
+            <li>予報を見たい地点の緯度・経度を入力します（例：緯度 27.75、経度 129.05）。度分（27°45.0'N）の形や、「緯度, 経度」の貼り付けでも入力できます。</li>
+            <li>「予報を表示」を押すと、風・波・うねりの時間別の予報が表示されます。</li>
+            <li>よく見る地点は、予報画面でお気に入りに保存できます。お気に入りはこのブラウザに保存され、次からはトップのお気に入りから開けます。</li>
+        </ol>
+
+        <h2>ご利用にあたって</h2>
+        <p>UMIYOMI の予報は、出航を判断するための材料の一つです。航海の安全を保証するものではありません。出航前には、気象庁などが発表する警報・注意報もあわせて確認してください。</p>
+    </section>
 {% endblock %}

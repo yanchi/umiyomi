@@ -1,0 +1,33 @@
+{# トップ画面のお気に入り一覧。JavaScript が localStorage の内容を <template> から複製して描画する。予報の数値は出さない（FR-013） #}
+<section class="favorites" data-favorites="manage-list" data-confirm-remove="『{name}』をお気に入りから削除しますか？">
+    <h2 class="favorites-title">お気に入り</h2>
+    {{ include('favorites/_notes.html.twig') }}
+    <p class="favorites-empty" data-favorites-state="empty" hidden>お気に入りはまだありません。予報画面で表示中の地点を保存できます。</p>
+    <div data-favorites-state="ready" hidden>
+        <ul class="favorites-list" data-favorites-items></ul>
+    </div>
+    <div role="status">
+        <p class="favorites-message" data-favorites-message="write_failed" hidden>お気に入りを保存できませんでした。ブラウザの設定や空き容量を確認してください</p>
+    </div>
+    <template data-favorites-template="manage-item">
+        <li class="favorites-item">
+            <a class="favorites-link" href="{{ path('app_forecast') }}">
+                <span class="favorites-name" data-favorites-field="name"></span>
+                <span class="favorites-coordinate" data-favorites-field="coordinate"></span>
+            </a>
+            <button type="button" data-favorites-action="rename">名前を変更</button>
+            <button type="button" data-favorites-action="remove">削除</button>
+            {# 名前の変更はその場で入力欄に切り替える。aria-describedby の id は項目ごとに一意になるよう JavaScript が付け替える #}
+            <form class="favorites-rename-form" novalidate hidden>
+                <label class="favorites-rename-field">名前（省略可・30 文字以内）
+                    <input name="favorite-name" type="text" autocomplete="off" aria-describedby="favorite-rename-error">
+                </label>
+                <p id="favorite-rename-error" class="field-error" data-favorites-message="name_too_long" hidden>名前は 30 文字以内で入力してください</p>
+                <div class="favorites-rename-actions">
+                    <button type="submit">保存</button>
+                    <button type="button" data-favorites-action="cancel-rename">キャンセル</button>
+                </div>
+            </form>
+        </li>
+    </template>
+</section>

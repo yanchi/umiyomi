@@ -1,0 +1,8 @@
+{# 文言は Twig に集め、JavaScript は hidden の切り替えだけをする（research R6）。show_storage_note を false にすると端末内保存の注意書きを出さない（保存パネル用） #}
+{% if show_storage_note ?? true %}
+    <p class="favorites-note">お気に入りはこの端末のこのブラウザにだけ保存され、他の端末とは共有されません。ブラウザのデータを消去すると消えます。</p>
+{% endif %}
+<p class="favorites-unavailable" data-favorites-state="unavailable" hidden>この環境ではお気に入りを保存・表示できません。緯度・経度を入力すれば予報は表示できます。</p>
+<noscript>
+    <p class="favorites-unavailable">この環境ではお気に入りを保存・表示できません。緯度・経度を入力すれば予報は表示できます。</p>
+</noscript>

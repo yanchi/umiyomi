@@ -4,6 +4,11 @@ FROM dunglas/frankenphp:1-php8.4
 RUN install-php-extensions intl opcache zip apcu \
     && cp "$PHP_INI_DIR/php.ini-development" "$PHP_INI_DIR/php.ini"
 
+# nodejs は JavaScript のテスト（node --test）を動かすためだけに入れる。AssetMapper はビルド不要なので本番用イメージには入れない
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 ENV COMPOSER_ALLOW_SUPERUSER=1 \

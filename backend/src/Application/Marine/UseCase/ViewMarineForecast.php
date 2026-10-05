@@ -49,7 +49,7 @@ final readonly class ViewMarineForecast
         // 再利用できる予報があるときは回数に数えない（FR-019）ため、回数制限の判定は再利用の判定より後に置く
         if (!$this->rateLimiter->tryConsume($input->clientKey)) {
             // spec は上限超過時に一覧を出さないと定めているため、24 時間以内の前回予報があっても代替表示しない（research R5）
-            return MarineForecastResult::rateLimited();
+            return MarineForecastResult::rateLimited($coordinate->latitude(), $coordinate->longitude());
         }
 
         try {
@@ -59,7 +59,7 @@ final readonly class ViewMarineForecast
                 return MarineForecastResult::stale($this->toView($cached, $now));
             }
 
-            return MarineForecastResult::unavailable();
+            return MarineForecastResult::unavailable($coordinate->latitude(), $coordinate->longitude());
         }
 
         if ($fetched->isComplete()) {

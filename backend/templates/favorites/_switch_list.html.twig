@@ -1,0 +1,20 @@
+{# 予報画面の折りたたみ一覧。閉じているあいだは summary の 1 行だけなので、予報の一覧を押し下げない（FR-005）。名前変更・削除はここに置かない（FR-016） #}
+<details class="favorites-switch">
+    <summary>お気に入り（<span data-favorites="count">0</span> 件）</summary>
+    <div class="favorites" data-favorites="switch-list">
+        {{ include('favorites/_notes.html.twig') }}
+        <p class="favorites-empty" data-favorites-state="empty" hidden>お気に入りはまだありません。予報画面で表示中の地点を保存できます。</p>
+        <div data-favorites-state="ready" hidden>
+            <ul class="favorites-list" data-favorites-items></ul>
+        </div>
+        <template data-favorites-template="switch-item">
+            <li class="favorites-item">
+                <a class="favorites-link" href="{{ path('app_forecast') }}">
+                    <span class="favorites-name" data-favorites-field="name"></span>
+                    <span class="favorites-coordinate" data-favorites-field="coordinate"></span>
+                </a>
+                <span class="favorites-current" data-favorites-field="current" hidden>表示中</span>
+            </li>
+        </template>
+    </div>
+</details>

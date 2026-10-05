@@ -89,13 +89,15 @@
         "deptrac": "deptrac analyse --no-progress",
         "test": "phpunit",
         "test:external": "phpunit --testsuite external",
+        "test:js": "node --test tests/JavaScript/",
         "check": [
             "@composer:lint",
             "@cs",
             "@lint:symfony",
             "@stan",
             "@deptrac",
-            "@test"
+            "@test",
+            "@test:js"
         ]
     },
     "conflict": {
@@ -125,6 +127,7 @@
         "check": "整形チェック・lint・PHPStan・Deptrac・テストをまとめて実行する",
         "cs:fix": "PHP と Twig を自動整形する",
         "deptrac": "レイヤー間の依存方向をチェックする",
-        "test:external": "実際の外部APIを呼ぶテストを実行する"
+        "test:external": "実際の外部APIを呼ぶテストを実行する",
+        "test:js": "お気に入りの規則などの JavaScript をテストする"
     }
 }

@@ -36,11 +36,11 @@ JavaScript モジュールにまとめ、Node.js 標準のテストランナー�
 | III. 外部海況 API の隔離とキャッシュ | ✅ | 外部 API の呼び出し・キャッシュには触れない。JavaScript は外部 API を呼ばず、既存の予報 URL へのリンクを作るだけ |
 | IV. 判断材料の提示と断定の禁止 | ✅ | お気に入り一覧に予報の数値・海況の判定を出さない（FR-013）。文言はすべて Twig に置き、断定表現がないことを Functional Test で確認する（research R6）。予報画面の「最終更新」の表示は変えない |
 | V. 重点領域のテスト | ✅ | お気に入りの規則（名前の正規化と上限・重複判定・件数上限・並び順・破損データの除外）は座標 validation と Domain Logic に相当するため `node --test` で自動テストする。`MarineForecastResult` の座標と `favoriteTarget` の変換は PHPUnit の Unit、画面の枠は Functional。DOM 操作は手動確認（quickstart） |
-| ワークフロー（人間のレビュー） | ⏳ 承認待ち | 画面・URL 設計（画面構成の変更）を含むため、実装前に承認を得る。Domain 設計・DB Schema・外部 API Provider・Security・海況判断ロジックの変更はない。下記「レビューで判断してほしい点」を参照 |
+| ワークフロー（人間のレビュー） | ✅ | 画面・URL 設計（画面構成の変更）を含むため、実装前に承認を得る（下記 1〜6 は 2026-10-05 に承認済み）。Domain 設計・DB Schema・外部 API Provider・Security・海況判断ロジックの変更はない。下記「レビューで判断してほしい点」を参照 |
 
 **Post-design re-check（Phase 1 後）**: 違反なし。Complexity Tracking は空。
 
-### レビューで判断してほしい点
+### レビューで判断してほしい点（2026-10-05 にすべて承認済み）
 
 1. **JavaScript のテスト環境の追加**（research R11）：開発用イメージに Debian の `nodejs`（20.x）を入れ、`composer test:js`（`node --test`）を `composer check` と CI に加える。
    npm・`package.json` は持ち込まない。本番用イメージには入れない。ブラウザを動かす E2E（Playwright 等）は見送り、DOM の動作は手動確認とする

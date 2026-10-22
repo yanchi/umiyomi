@@ -157,6 +157,8 @@ jobs:
           context: backend
           file: backend/Dockerfile.prod
           push: true
+          # ベースイメージ（FrankenPHP 1-php8.4）は移動タグなので、PHP のセキュリティ修正を取り込むため毎回取り直す
+          pull: true
           # コミット SHA のタグも打つ。ロールバックはこのタグを指定するだけでよい
           tags: |
             ${{ steps.meta.outputs.image }}:latest

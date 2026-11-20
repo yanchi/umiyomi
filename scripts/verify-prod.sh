@@ -162,33 +162,36 @@ ok 'root で動いていない' \
 
 section '2. 画面とアセット'
 
+# 含まれるかの判定に grep -q を使わない。pipefail の下では、grep -q が一致した時点で抜けると
+# 書き込み途中の curl / printf が SIGPIPE で失敗し、一致していても「なし」と判定されてしまう
+
 HOME_HTML="$(curl -s "$BASE/")"
 ok 'トップ /' "$(http_code "$BASE/")" '200'
 ok '存在しないページは 404' "$(http_code "$BASE/nope")" '404'
 # フィードバックのフォームは未設定で起動するので、リンクを出さず /feedback も 404（004）
 ok 'フォーム未設定ではフッターにフィードバックのリンクがない' \
-   "$(printf '%s' "$HOME_HTML" | grep -q 'site-footer__feedback' && echo あり || echo なし)" 'なし'
+   "$(printf '%s' "$HOME_HTML" | grep 'site-footer__feedback' >/dev/null && echo あり || echo なし)" 'なし'
 ok 'フォーム未設定では /feedback が 404' "$(http_code "$BASE/feedback")" '404'
 # 計測 ID なしで起動しているので、計測の設定を出さない（006）
 ok '計測 ID 未設定では計測の設定を出さない' \
-   "$(printf '%s' "$HOME_HTML" | grep -q 'umiyomi-analytics' && echo あり || echo なし)" 'なし'
+   "$(printf '%s' "$HOME_HTML" | grep 'umiyomi-analytics' >/dev/null && echo あり || echo なし)" 'なし'
 ok '計測 ID 未設定では入力不正の画面にも計測の設定を出さない' \
-   "$(curl -s "$BASE/forecast?lat=N27&lon=" | grep -q 'umiyomi-analytics' && echo あり || echo なし)" 'なし'
+   "$(curl -s "$BASE/forecast?lat=N27&lon=" | grep 'umiyomi-analytics' >/dev/null && echo あり || echo なし)" 'なし'
 # 外部送信の案内（006）。計測 ID なしでも全画面から開ける
 ok '外部送信の案内 /external-transmission' "$(http_code "$BASE/external-transmission")" '200'
 ok '計測 ID 未設定では案内画面に計測しない旨を出す' \
-   "$(curl -s "$BASE/external-transmission" | grep -q 'この環境では現在、アクセス解析による計測を行っていません。' && echo あり || echo なし)" 'あり'
+   "$(curl -s "$BASE/external-transmission" | grep 'この環境では現在、アクセス解析による計測を行っていません。' >/dev/null && echo あり || echo なし)" 'あり'
 ok 'トップのフッターに外部送信の案内へのリンクがある' \
-   "$(printf '%s' "$HOME_HTML" | grep -q 'site-footer__external-transmission' && echo あり || echo なし)" 'あり'
+   "$(printf '%s' "$HOME_HTML" | grep 'site-footer__external-transmission' >/dev/null && echo あり || echo なし)" 'あり'
 ok '.env は配信しない' \
    "$([ "$(http_code "$BASE/.env")" != '200' ] && echo 配信しない || echo 配信される)" '配信しない'
 ok 'プロファイラが無い' "$(http_code "$BASE/_profiler")" '404'
 
 # 検索エンジンへの登録（007）。登録対象はトップだけで、他の画面はアプリの meta robots で noindex にする。
 # フィードバック案内はフォーム未設定で 404 になるため、ここでは確かめない（404 の画面として確かめる）
-has_noindex() { printf '%s' "$1" | grep -q '<meta name="robots" content="noindex">' && echo あり || echo なし; }
+has_noindex() { printf '%s' "$1" | grep '<meta name="robots" content="noindex">' >/dev/null && echo あり || echo なし; }
 ok 'トップに meta robots がない' \
-   "$(printf '%s' "$HOME_HTML" | grep -q 'name="robots"' && echo あり || echo なし)" 'なし'
+   "$(printf '%s' "$HOME_HTML" | grep 'name="robots"' >/dev/null && echo あり || echo なし)" 'なし'
 ok '入力不正の予報画面は noindex' "$(has_noindex "$(curl -s "$BASE/forecast?lat=N27&lon=")")" 'あり'
 ok '外部送信の案内は noindex' "$(has_noindex "$(curl -s "$BASE/external-transmission")")" 'あり'
 ok '404 の画面は noindex' "$(has_noindex "$(curl -s "$BASE/nope")")" 'あり'
@@ -245,9 +248,9 @@ esac
 ok '/favicon.ico の Content-Type' "$FAVICON_TYPE" 'ico'
 # エラー画面（TwigBundle の error.html.twig）にも同じアイコンが付く
 ok '404 の画面にもアイコンの link がある' \
-   "$(curl -s "$BASE/nope" | grep -q 'rel="apple-touch-icon"' && echo あり || echo なし)" 'あり'
+   "$(curl -s "$BASE/nope" | grep 'rel="apple-touch-icon"' >/dev/null && echo あり || echo なし)" 'あり'
 ok '予報の画面にもアイコンの link がある' \
-   "$(curl -s "$BASE/forecast?lat=N27&lon=" | grep -q 'rel="apple-touch-icon"' && echo あり || echo なし)" 'あり'
+   "$(curl -s "$BASE/forecast?lat=N27&lon=" | grep 'rel="apple-touch-icon"' >/dev/null && echo あり || echo なし)" 'あり'
 
 # 度分の入力は予報を取得せずに十進数の URL へ 303 でリダイレクトする（外部 API は呼ばない）
 REDIRECT_URL="$BASE/forecast?lat=27%C2%B045.0%27N&lon=129%C2%B003.0%27E"
@@ -334,7 +337,7 @@ done
 VIA_VHOST="$(curl -s -o /dev/null -D - -H "Host: ${HOST}" "http://127.0.0.1:${VHOST_PORT}/")"
 contains 'vhost 経由でトップが返る' "$VIA_VHOST" ' 200'
 ok 'トップに X-Robots-Tag が付かない' \
-   "$(printf '%s' "$VIA_VHOST" | grep -qi 'X-Robots-Tag' && echo あり || echo なし)" 'なし'
+   "$(printf '%s' "$VIA_VHOST" | grep -i 'X-Robots-Tag' >/dev/null && echo あり || echo なし)" 'なし'
 # チャレンジのファイルは置いていないので 404。always があればエラーの応答にも付く
 contains 'certbot のチャレンジのパスは noindex' \
     "$(curl -s -o /dev/null -D - -H "Host: ${HOST}" "http://127.0.0.1:${VHOST_PORT}/.well-known/acme-challenge/verify")" 'X-Robots-Tag: noindex'
